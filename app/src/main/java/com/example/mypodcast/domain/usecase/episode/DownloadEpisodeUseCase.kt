@@ -5,6 +5,7 @@ import com.example.mypodcast.domain.model.DownloadState
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.repository.LibraryRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -47,6 +48,9 @@ class DownloadEpisodeUseCase @Inject constructor(
             }
             libraryRepository.saveDownload(episode.guid, episode.podcastId, file.absolutePath, file.length())
             emit(DownloadState.Completed(file.absolutePath))
+        } catch (e: CancellationException) {
+            file.delete()
+            throw e
         } catch (e: Exception) {
             file.delete()
             emit(DownloadState.Failed(e.message ?: "Download failed"))

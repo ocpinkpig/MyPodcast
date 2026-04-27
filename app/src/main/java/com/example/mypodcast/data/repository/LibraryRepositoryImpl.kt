@@ -2,6 +2,7 @@
 
 package com.example.mypodcast.data.repository
 
+import android.content.Context
 import com.example.mypodcast.data.local.dao.DownloadedEpisodeDao
 import com.example.mypodcast.data.local.dao.EpisodeDao
 import com.example.mypodcast.data.local.dao.PodcastDao
@@ -11,14 +12,18 @@ import com.example.mypodcast.data.local.entity.SubscriptionEntity
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.Podcast
 import com.example.mypodcast.domain.repository.LibraryRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 
 class LibraryRepositoryImpl @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val subscriptionDao: SubscriptionDao,
     private val podcastDao: PodcastDao,
     private val episodeDao: EpisodeDao,
@@ -93,12 +98,26 @@ class LibraryRepositoryImpl @Inject constructor(
         )
 
     override suspend fun deleteDownload(episodeGuid: String) {
-        val entity = DownloadedEpisodeEntity(
-            episodeGuid = episodeGuid,
-            podcastId = 0,
-            localFilePath = "",
-            fileSizeBytes = 0
-        )
-        downloadedEpisodeDao.delete(entity)
+        val entity = downloadedEpisodeDao.getByGuid(episodeGuid)
+        if (entity != null) {
+            withContext(Dispatchers.IO) {
+                runCatching { File(entity.localFilePath).delete() }
+            }
+        }
+        downloadedEpisodeDao.deleteByGuid(episodeGuid)
+    }
+
+    override suspend fun cleanupOrphanedFiles() = withContext(Dispatchers.IO) {
+        val episodesDir = File(context.filesDir, "episodes")
+        if (!episodesDir.exists()) return@withContext
+        val files = episodesDir.listFiles().orEmpty()
+        if (files.isEmpty()) return@withContext
+
+        val dbPaths = downloadedEpisodeDao.getAll().map { it.localFilePath }.toSet()
+        files.forEach { file ->
+            if (file.absolutePath !in dbPaths) {
+                runCatching { file.delete() }
+            }
+        }
     }
 }

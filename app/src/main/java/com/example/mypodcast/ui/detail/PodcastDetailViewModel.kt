@@ -114,18 +114,31 @@ class PodcastDetailViewModel @Inject constructor(
         if (_uiState.value.downloadedGuids.contains(episode.guid)) return
 
         downloadJobs[episode.guid] = viewModelScope.launch {
-            downloadEpisodeUseCase(episode).collect { state ->
+            try {
+                downloadEpisodeUseCase(episode).collect { state ->
+                    _uiState.update { ui ->
+                        val map = ui.downloadStates.toMutableMap()
+                        if (state is DownloadState.Completed || state is DownloadState.Failed) {
+                            map.remove(episode.guid)
+                        } else {
+                            map[episode.guid] = state
+                        }
+                        ui.copy(downloadStates = map)
+                    }
+                }
+            } finally {
                 _uiState.update { ui ->
                     val map = ui.downloadStates.toMutableMap()
-                    if (state is DownloadState.Completed || state is DownloadState.Failed) {
-                        map.remove(episode.guid)
-                    } else {
-                        map[episode.guid] = state
-                    }
+                    map.remove(episode.guid)
                     ui.copy(downloadStates = map)
                 }
+                downloadJobs.remove(episode.guid)
             }
         }
+    }
+
+    fun cancelDownload(episodeGuid: String) {
+        downloadJobs[episodeGuid]?.cancel()
     }
 
     fun deleteDownload(episode: Episode) {

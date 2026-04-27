@@ -13,4 +13,5 @@ interface LibraryRepository {
     fun observeIsDownloaded(episodeGuid: String): Flow<Boolean>
     suspend fun saveDownload(episodeGuid: String, podcastId: Long, localPath: String, sizeBytes: Long)
     suspend fun deleteDownload(episodeGuid: String)
+    suspend fun cleanupOrphanedFiles()
 }

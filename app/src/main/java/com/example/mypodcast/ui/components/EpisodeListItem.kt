@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,6 +43,7 @@ fun EpisodeListItem(
     isDownloaded: Boolean = false,
     downloadState: DownloadState? = null,
     onDownloadClick: (() -> Unit)? = null,
+    onCancelDownloadClick: (() -> Unit)? = null,
     onDeleteDownloadClick: (() -> Unit)? = null
 ) {
     Row(
@@ -81,6 +83,7 @@ fun EpisodeListItem(
                 isDownloaded = isDownloaded,
                 downloadState = downloadState,
                 onDownloadClick = onDownloadClick,
+                onCancelDownloadClick = onCancelDownloadClick,
                 onDeleteDownloadClick = onDeleteDownloadClick
             )
         }
@@ -96,6 +99,7 @@ private fun DownloadButton(
     isDownloaded: Boolean,
     downloadState: DownloadState?,
     onDownloadClick: (() -> Unit)?,
+    onCancelDownloadClick: (() -> Unit)?,
     onDeleteDownloadClick: (() -> Unit)?
 ) {
     when {
@@ -109,16 +113,19 @@ private fun DownloadButton(
             }
         }
         downloadState is DownloadState.Downloading -> {
-            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    progress = { downloadState.progressPercent / 100f },
-                    modifier = Modifier.size(28.dp),
-                    strokeWidth = 2.5.dp
-                )
-                Text(
-                    text = "${downloadState.progressPercent}",
-                    style = MaterialTheme.typography.labelSmall
-                )
+            IconButton(onClick = { onCancelDownloadClick?.invoke() }) {
+                Box(contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(
+                        progress = { downloadState.progressPercent / 100f },
+                        modifier = Modifier.size(28.dp),
+                        strokeWidth = 2.5.dp
+                    )
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Cancel download",
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
             }
         }
         else -> {

@@ -49,7 +49,12 @@
       "Bash(adb -s emulator-5554 shell input tap 849 1552)",
       "Bash(adb -s emulator-5554 shell input tap 906 2274)",
       "Bash(adb -s emulator-5554 shell input tap 540 256)",
-      "Bash(adb -s emulator-5554 shell input tap 810 125)"
+      "Bash(adb -s emulator-5554 shell input tap 810 125)",
+      "Bash(adb -s emulator-5554 shell \"run-as com.example.mypodcast ls /data/data/com.example.mypodcast/files/episodes/\")",
+      "Bash(adb -s emulator-5554 shell input tap 849 284)",
+      "Bash(adb -s emulator-5554 shell input tap 172 2274)",
+      "Bash(adb -s emulator-5554 emu network speed edge)",
+      "Bash(adb -s emulator-5554 shell input tap 849 2132)"
     ]
   }
 }

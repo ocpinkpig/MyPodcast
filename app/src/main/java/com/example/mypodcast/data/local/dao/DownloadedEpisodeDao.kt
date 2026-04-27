@@ -13,8 +13,14 @@ interface DownloadedEpisodeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(download: DownloadedEpisodeEntity)
 
-    @Delete
-    suspend fun delete(download: DownloadedEpisodeEntity)
+    @Query("DELETE FROM downloaded_episodes WHERE episodeGuid = :guid")
+    suspend fun deleteByGuid(guid: String)
+
+    @Query("SELECT * FROM downloaded_episodes WHERE episodeGuid = :guid")
+    suspend fun getByGuid(guid: String): DownloadedEpisodeEntity?
+
+    @Query("SELECT * FROM downloaded_episodes")
+    suspend fun getAll(): List<DownloadedEpisodeEntity>
 
     @Query("SELECT * FROM downloaded_episodes ORDER BY downloadedAt DESC")
     fun observeAll(): Flow<List<DownloadedEpisodeEntity>>
