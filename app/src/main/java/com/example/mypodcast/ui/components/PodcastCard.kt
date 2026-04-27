@@ -3,10 +3,10 @@ package com.example.mypodcast.ui.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,7 +27,6 @@ fun PodcastCard(
 ) {
     Column(
         modifier = modifier
-            .width(140.dp)
             .clickable(onClick = onClick)
             .padding(4.dp)
     ) {
@@ -36,7 +35,8 @@ fun PodcastCard(
             contentDescription = podcast.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(132.dp)
+                .fillMaxWidth()
+                .aspectRatio(1f)
                 .clip(RoundedCornerShape(8.dp))
         )
         Spacer(Modifier.height(4.dp))

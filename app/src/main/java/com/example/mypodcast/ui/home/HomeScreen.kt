@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -63,7 +64,8 @@ private fun HomeContent(
                     items(podcasts, key = { it.id }) { podcast ->
                         PodcastCard(
                             podcast = podcast,
-                            onClick = { onPodcastClick(podcast.id) }
+                            onClick = { onPodcastClick(podcast.id) },
+                            modifier = Modifier.width(140.dp)
                         )
                     }
                 }
