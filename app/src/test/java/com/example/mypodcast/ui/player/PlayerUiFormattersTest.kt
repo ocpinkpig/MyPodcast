@@ -2,6 +2,7 @@ package com.example.mypodcast.ui.player
 
 import junit.framework.TestCase.assertEquals
 import org.junit.Test
+import java.util.Locale
 
 class PlayerUiFormattersTest {
     @Test
@@ -30,6 +31,18 @@ class PlayerUiFormattersTest {
         assertEquals("1.0x", formatSpeedLabel(1.0f))
         assertEquals("1.5x", formatSpeedLabel(1.5f))
         assertEquals("3.0x", formatSpeedLabel(3.0f))
+    }
+
+    @Test
+    fun formatSpeedLabel_usesFixedLocale() {
+        val originalLocale = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.GERMANY)
+
+            assertEquals("1.5x", formatSpeedLabel(1.5f))
+        } finally {
+            Locale.setDefault(originalLocale)
+        }
     }
 
     @Test

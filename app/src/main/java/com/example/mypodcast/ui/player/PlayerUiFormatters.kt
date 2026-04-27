@@ -1,5 +1,6 @@
 package com.example.mypodcast.ui.player
 
+import java.util.Locale
 import kotlin.math.roundToInt
 
 internal fun formatPlaybackTime(ms: Long): String {
@@ -8,9 +9,9 @@ internal fun formatPlaybackTime(ms: Long): String {
     val minutes = (totalSecs % 3600) / 60
     val seconds = totalSecs % 60
     return if (hours > 0) {
-        "%d:%02d:%02d".format(hours, minutes, seconds)
+        "%d:%02d:%02d".format(Locale.ROOT, hours, minutes, seconds)
     } else {
-        "%d:%02d".format(minutes, seconds)
+        "%d:%02d".format(Locale.ROOT, minutes, seconds)
     }
 }
 
@@ -21,7 +22,7 @@ internal fun formatProgressFraction(positionMs: Long, durationMs: Long): Float {
 
 internal fun formatSpeedLabel(speed: Float): String {
     val tenths = (speed * 10f).roundToInt() / 10f
-    return "%.1fx".format(tenths)
+    return "%.1fx".format(Locale.ROOT, tenths)
 }
 
 internal fun formatSleepTimerLabel(remainingMs: Long): String {
