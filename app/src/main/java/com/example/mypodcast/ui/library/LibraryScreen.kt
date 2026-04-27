@@ -6,17 +6,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
 import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.ui.components.EpisodeListItem
 import com.example.mypodcast.ui.components.PodcastCard
 
@@ -27,6 +33,7 @@ fun LibraryScreen(
     viewModel: LibraryViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var pendingDelete by remember { mutableStateOf<Episode?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         PrimaryTabRow(selectedTabIndex = state.selectedTab.ordinal) {
@@ -79,8 +86,8 @@ fun LibraryScreen(
                                     viewModel.playEpisode(episode)
                                     onEpisodePlay(episode.guid)
                                 },
-                                isDownloaded = true,
-                                onDeleteDownloadClick = { viewModel.deleteDownload(episode) }
+                                showDeleteIcon = true,
+                                onDeleteDownloadClick = { pendingDelete = episode }
                             )
                             HorizontalDivider()
                         }
@@ -88,5 +95,26 @@ fun LibraryScreen(
                 }
             }
         }
+    }
+
+    pendingDelete?.let { episode ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Delete download?") },
+            text = {
+                Text("\"${episode.title}\" will be removed from your device. You can re-download it later.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteDownload(episode)
+                        pendingDelete = null
+                    }
+                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+            }
+        )
     }
 }

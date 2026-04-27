@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,6 +42,7 @@ fun EpisodeListItem(
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier,
     isDownloaded: Boolean = false,
+    showDeleteIcon: Boolean = false,
     downloadState: DownloadState? = null,
     onDownloadClick: (() -> Unit)? = null,
     onCancelDownloadClick: (() -> Unit)? = null,
@@ -78,9 +80,10 @@ fun EpisodeListItem(
             )
         }
 
-        if (onDownloadClick != null || isDownloaded) {
+        if (onDownloadClick != null || isDownloaded || showDeleteIcon) {
             DownloadButton(
                 isDownloaded = isDownloaded,
+                showDeleteIcon = showDeleteIcon,
                 downloadState = downloadState,
                 onDownloadClick = onDownloadClick,
                 onCancelDownloadClick = onCancelDownloadClick,
@@ -97,12 +100,22 @@ fun EpisodeListItem(
 @Composable
 private fun DownloadButton(
     isDownloaded: Boolean,
+    showDeleteIcon: Boolean,
     downloadState: DownloadState?,
     onDownloadClick: (() -> Unit)?,
     onCancelDownloadClick: (() -> Unit)?,
     onDeleteDownloadClick: (() -> Unit)?
 ) {
     when {
+        showDeleteIcon -> {
+            IconButton(onClick = { onDeleteDownloadClick?.invoke() }) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete download",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
         isDownloaded -> {
             IconButton(onClick = { onDeleteDownloadClick?.invoke() }) {
                 Icon(

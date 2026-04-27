@@ -54,7 +54,9 @@
       "Bash(adb -s emulator-5554 shell input tap 849 284)",
       "Bash(adb -s emulator-5554 shell input tap 172 2274)",
       "Bash(adb -s emulator-5554 emu network speed edge)",
-      "Bash(adb -s emulator-5554 shell input tap 849 2132)"
+      "Bash(adb -s emulator-5554 shell input tap 849 2132)",
+      "Bash(adb -s emulator-5554 shell input tap 618 1401)",
+      "Bash(adb -s emulator-5554 shell input tap 812 1401)"
     ]
   }
 }
