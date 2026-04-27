@@ -20,8 +20,8 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun seekTo(positionMs: Long) = playerRepository.seekTo(positionMs)
-    fun skipForward() = playerRepository.skipForward()
-    fun skipBack() = playerRepository.skipBack()
+    fun skipForward() = playerRepository.skipForward(seconds = 30)
+    fun skipBack() = playerRepository.skipBack(seconds = 30)
     fun setSpeed(speed: Float) = playerRepository.setPlaybackSpeed(speed)
     fun setSleepTimer(minutes: Int) = playerRepository.setSleepTimer(minutes)
     fun cancelSleepTimer() = playerRepository.cancelSleepTimer()

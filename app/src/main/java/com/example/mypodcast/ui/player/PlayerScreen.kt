@@ -12,9 +12,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.FastRewind
+import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Replay30
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -107,7 +107,7 @@ fun PlayerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = viewModel::skipBack) {
-                    Icon(Icons.Default.FastRewind, contentDescription = "Skip back 15s", modifier = Modifier.size(36.dp))
+                    Icon(Icons.Default.Replay30, contentDescription = "Skip back 30 seconds", modifier = Modifier.size(36.dp))
                 }
                 IconButton(
                     onClick = viewModel::playPause,
@@ -120,7 +120,7 @@ fun PlayerScreen(
                     )
                 }
                 IconButton(onClick = viewModel::skipForward) {
-                    Icon(Icons.Default.FastForward, contentDescription = "Skip forward 15s", modifier = Modifier.size(36.dp))
+                    Icon(Icons.Default.Forward30, contentDescription = "Skip forward 30 seconds", modifier = Modifier.size(36.dp))
                 }
             }
 
