@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:goo.gle)",
+      "WebFetch(domain:github.com)",
+      "Bash(android --version)",
+      "Bash(android create *)",
+      "Bash(./gradlew assembleDebug)",
+      "Bash(android docs *)",
+      "Bash(curl -s \"https://maven.google.com/web/index.html#com.google.devtools.ksp\")",
+      "Bash(curl -s \"https://dl.google.com/android/maven2/com/google/devtools/ksp/com.google.devtools.ksp.gradle.plugin/maven-metadata.xml\")",
+      "WebFetch(domain:central.sonatype.com)",
+      "Bash(android emulator *)",
+      "Bash(adb devices *)",
+      "Bash(adb -s emulator-5554 shell getprop ro.build.version.release)",
+      "Bash(android run *)",
+      "Bash(./gradlew installDebug)",
+      "Bash(adb -s emulator-5554 shell am start -n com.example.mypodcast/.MainActivity)",
+      "Bash(android screenshot *)",
+      "Bash(adb -s emulator-5554 shell input tap 540 1900)",
+      "Bash(android screen *)",
+      "Bash(adb -s emulator-5554 shell am force-stop com.example.mypodcast)",
+      "Bash(adb -s emulator-5554 shell input tap 540 480)",
+      "Bash(adb -s emulator-5554 shell input tap 540 720)",
+      "Bash(adb -s emulator-5554 shell input tap 980 720)",
+      "Bash(android layout *)",
+      "Bash(adb -s emulator-5554 shell input tap 975 1428)",
+      "Bash(adb -s emulator-5554 shell input keyevent KEYCODE_BACK)",
+      "Skill(schedule)",
+      "Skill(schedule:*)",
+      "Bash(gh auth *)",
+      "Bash(git --version)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}
