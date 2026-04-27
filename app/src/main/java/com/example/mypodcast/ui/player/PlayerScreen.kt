@@ -3,26 +3,42 @@ package com.example.mypodcast.ui.player
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.filled.Forward30
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Replay30
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -34,9 +50,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.example.mypodcast.domain.model.PlayerState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -168,14 +188,204 @@ private fun PlaybackPage(
     onSpeedClick: () -> Unit,
     onSleepTimerClick: () -> Unit
 ) {
-    Column(
+    val episode = state.episode
+
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .padding(horizontal = 24.dp)
     ) {
-        Text(state.episode?.title ?: "Loading...", style = MaterialTheme.typography.titleMedium)
+        val artworkSize = if (maxHeight < 620.dp) 132.dp else 176.dp
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Spacer(Modifier.height(8.dp))
+
+            AsyncImage(
+                model = episode?.artworkUrl,
+                contentDescription = episode?.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(artworkSize)
+                    .clip(RoundedCornerShape(18.dp))
+            )
+
+            Text(
+                text = episode?.title ?: "Loading...",
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2
+            )
+
+            PlayerStatusChips(
+                speed = state.speed,
+                sleepTimerRemainingMs = state.sleepTimerRemainingMs,
+                isDownloaded = episode?.audioUrl?.startsWith("/") == true
+            )
+
+            if (state.error != null) {
+                Text(
+                    text = state.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            PlayerProgress(
+                positionMs = state.positionMs,
+                durationMs = state.durationMs,
+                onSeek = onSeek
+            )
+
+            PrimaryPlaybackControls(
+                isPlaying = state.isPlaying,
+                isBuffering = state.isBuffering,
+                onPlayPause = onPlayPause,
+                onSkipBack = onSkipBack,
+                onSkipForward = onSkipForward
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ElevatedButton(
+                    onClick = onSpeedClick,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.GraphicEq, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(formatSpeedLabel(state.speed))
+                }
+                ElevatedButton(
+                    onClick = onSleepTimerClick,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Timer, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (state.sleepTimerRemainingMs > 0L) "Timer" else "Sleep")
+                }
+            }
+
+            Text(
+                text = "Swipe for show notes",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlayerStatusChips(
+    speed: Float,
+    sleepTimerRemainingMs: Long,
+    isDownloaded: Boolean
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (isDownloaded) {
+            AssistChip(
+                onClick = {},
+                label = { Text("Downloaded") },
+                leadingIcon = { Icon(Icons.Default.DownloadDone, contentDescription = null) }
+            )
+        }
+        AssistChip(
+            onClick = {},
+            label = { Text(formatSpeedLabel(speed)) },
+            leadingIcon = { Icon(Icons.Default.GraphicEq, contentDescription = null) }
+        )
+        AssistChip(
+            onClick = {},
+            label = { Text(formatSleepTimerLabel(sleepTimerRemainingMs)) },
+            leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null) }
+        )
+    }
+}
+
+@Composable
+private fun PlayerProgress(
+    positionMs: Long,
+    durationMs: Long,
+    onSeek: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Slider(
+            value = formatProgressFraction(positionMs, durationMs),
+            onValueChange = { fraction -> onSeek((fraction * durationMs).toLong()) },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(formatPlaybackTime(positionMs), style = MaterialTheme.typography.labelSmall)
+            Text(formatPlaybackTime(durationMs), style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
+private fun PrimaryPlaybackControls(
+    isPlaying: Boolean,
+    isBuffering: Boolean,
+    onPlayPause: () -> Unit,
+    onSkipBack: () -> Unit,
+    onSkipForward: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onSkipBack, modifier = Modifier.size(56.dp)) {
+            Icon(
+                Icons.Default.Replay30,
+                contentDescription = "Skip back 30 seconds",
+                modifier = Modifier.size(34.dp)
+            )
+        }
+        Surface(
+            onClick = onPlayPause,
+            modifier = Modifier.size(76.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                if (isBuffering) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(34.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 3.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        modifier = Modifier.size(42.dp)
+                    )
+                }
+            }
+        }
+        IconButton(onClick = onSkipForward, modifier = Modifier.size(56.dp)) {
+            Icon(
+                Icons.Default.Forward30,
+                contentDescription = "Skip forward 30 seconds",
+                modifier = Modifier.size(34.dp)
+            )
+        }
     }
 }
 
