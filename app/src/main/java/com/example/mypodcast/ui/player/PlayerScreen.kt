@@ -1,42 +1,54 @@
 package com.example.mypodcast.ui.player
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Forward30
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.Replay30
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
+import com.example.mypodcast.domain.model.PlayerState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +58,8 @@ fun PlayerScreen(
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val state by viewModel.playerState.collectAsStateWithLifecycle()
-    val episode = state.episode
+    var showSpeedSheet by remember { mutableStateOf(false) }
+    var showSleepTimerSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -56,114 +69,205 @@ fun PlayerScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
+                },
+                actions = {
+                    IconButton(onClick = { showSleepTimerSheet = true }) {
+                        Icon(Icons.Default.MoreHoriz, contentDescription = "More player options")
+                    }
                 }
             )
         }
     ) { padding ->
-        Column(
+        PlayerPager(
+            state = state,
+            contentPadding = padding,
+            onSeek = viewModel::seekTo,
+            onPlayPause = viewModel::playPause,
+            onSkipBack = viewModel::skipBack,
+            onSkipForward = viewModel::skipForward,
+            onSpeedClick = { showSpeedSheet = true },
+            onSleepTimerClick = { showSleepTimerSheet = true }
+        )
+    }
+
+    if (showSpeedSheet) {
+        SpeedSheet(
+            currentSpeed = state.speed,
+            onSpeedSelected = { speed ->
+                viewModel.setSpeed(speed)
+                showSpeedSheet = false
+            },
+            onDismiss = { showSpeedSheet = false }
+        )
+    }
+
+    if (showSleepTimerSheet) {
+        SleepTimerSheet(
+            remainingMs = state.sleepTimerRemainingMs,
+            onTimerSelected = { minutes ->
+                viewModel.setSleepTimer(minutes)
+                showSleepTimerSheet = false
+            },
+            onCancelTimer = {
+                viewModel.cancelSleepTimer()
+                showSleepTimerSheet = false
+            },
+            onDismiss = { showSleepTimerSheet = false }
+        )
+    }
+}
+
+@Composable
+private fun PlayerPager(
+    state: PlayerState,
+    contentPadding: PaddingValues,
+    onSeek: (Long) -> Unit,
+    onPlayPause: () -> Unit,
+    onSkipBack: () -> Unit,
+    onSkipForward: () -> Unit,
+    onSpeedClick: () -> Unit,
+    onSleepTimerClick: () -> Unit
+) {
+    val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(contentPadding)
+    ) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f)
+        ) { page ->
+            when (page) {
+                0 -> PlaybackPage(
+                    state = state,
+                    onSeek = onSeek,
+                    onPlayPause = onPlayPause,
+                    onSkipBack = onSkipBack,
+                    onSkipForward = onSkipForward,
+                    onSpeedClick = onSpeedClick,
+                    onSleepTimerClick = onSleepTimerClick
+                )
+                1 -> ShowNotesPage(
+                    state = state,
+                    onSeek = onSeek,
+                    onPlayPause = onPlayPause,
+                    onSkipBack = onSkipBack,
+                    onSkipForward = onSkipForward
+                )
+            }
+        }
+
+        PageIndicator(
+            selectedPage = pagerState.currentPage,
+            pageCount = 2,
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Spacer(Modifier.height(8.dp))
+                .fillMaxWidth()
+                .padding(bottom = 12.dp)
+        )
+    }
+}
 
-            AsyncImage(
-                model = episode?.artworkUrl,
-                contentDescription = episode?.title,
-                contentScale = ContentScale.Crop,
+@Composable
+private fun PlaybackPage(
+    state: PlayerState,
+    onSeek: (Long) -> Unit,
+    onPlayPause: () -> Unit,
+    onSkipBack: () -> Unit,
+    onSkipForward: () -> Unit,
+    onSpeedClick: () -> Unit,
+    onSleepTimerClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(state.episode?.title ?: "Loading...", style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+@Composable
+private fun ShowNotesPage(
+    state: PlayerState,
+    onSeek: (Long) -> Unit,
+    onPlayPause: () -> Unit,
+    onSkipBack: () -> Unit,
+    onSkipForward: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Show notes", style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+@Composable
+private fun PageIndicator(
+    selectedPage: Int,
+    pageCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(pageCount) { index ->
+            val selected = index == selectedPage
+            Box(
                 modifier = Modifier
-                    .size(280.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .padding(horizontal = 3.dp)
+                    .height(6.dp)
+                    .width(if (selected) 18.dp else 6.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outlineVariant
+                    )
             )
+        }
+    }
+}
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = episode?.title ?: "Loading…",
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2
-                )
-            }
-
-            val progress = if (state.durationMs > 0) state.positionMs.toFloat() / state.durationMs else 0f
-            Column {
-                Slider(
-                    value = progress,
-                    onValueChange = { viewModel.seekTo((it * state.durationMs).toLong()) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(formatMs(state.positionMs), style = MaterialTheme.typography.labelSmall)
-                    Text(formatMs(state.durationMs), style = MaterialTheme.typography.labelSmall)
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = viewModel::skipBack) {
-                    Icon(Icons.Default.Replay30, contentDescription = "Skip back 30 seconds", modifier = Modifier.size(36.dp))
-                }
-                IconButton(
-                    onClick = viewModel::playPause,
-                    modifier = Modifier.size(72.dp)
-                ) {
-                    Icon(
-                        imageVector = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (state.isPlaying) "Pause" else "Play",
-                        modifier = Modifier.size(48.dp)
-                    )
-                }
-                IconButton(onClick = viewModel::skipForward) {
-                    Icon(Icons.Default.Forward30, contentDescription = "Skip forward 30 seconds", modifier = Modifier.size(36.dp))
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                listOf(0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f).forEach { speed ->
-                    FilterChip(
-                        selected = state.speed == speed,
-                        onClick = { viewModel.setSpeed(speed) },
-                        label = { Text("${speed}x") }
-                    )
-                }
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Timer, contentDescription = "Sleep timer")
-                Text(" Sleep timer: ", style = MaterialTheme.typography.bodySmall)
-                listOf(15, 30, 60).forEach { minutes ->
-                    FilterChip(
-                        selected = false,
-                        onClick = { viewModel.setSleepTimer(minutes) },
-                        label = { Text("${minutes}m") },
-                        modifier = Modifier.padding(horizontal = 2.dp)
-                    )
-                }
-                if (state.sleepTimerRemainingMs > 0) {
-                    Text(
-                        text = formatMs(state.sleepTimerRemainingMs),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SpeedSheet(
+    currentSpeed: Float,
+    onSpeedSelected: (Float) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.padding(24.dp)) {
+            Text("Playback speed", style = MaterialTheme.typography.titleLarge)
+            TextButton(onClick = { onSpeedSelected(currentSpeed) }) {
+                Text(formatSpeedLabel(currentSpeed))
             }
         }
     }
 }
 
-private fun formatMs(ms: Long): String {
-    val totalSecs = ms / 1000
-    val h = totalSecs / 3600
-    val m = (totalSecs % 3600) / 60
-    val s = totalSecs % 60
-    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SleepTimerSheet(
+    remainingMs: Long,
+    onTimerSelected: (Int) -> Unit,
+    onCancelTimer: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.padding(24.dp)) {
+            Text("Sleep timer", style = MaterialTheme.typography.titleLarge)
+            Text(formatSleepTimerLabel(remainingMs))
+            TextButton(onClick = onCancelTimer) { Text("Off") }
+            TextButton(onClick = { onTimerSelected(30) }) { Text("30 minutes") }
+        }
+    }
 }
