@@ -45,7 +45,7 @@ fun MainScreen(
                             val guid = playerState.episode?.guid ?: return@MiniPlayer
                             onNavigate(PlayerNavKey(guid))
                         },
-                        onPlayPauseClick = { /* handled in PlayerRepository via ViewModel */ }
+                        onPlayPauseClick = { viewModel.togglePlayPause() }
                     )
                 }
                 NavigationBar {

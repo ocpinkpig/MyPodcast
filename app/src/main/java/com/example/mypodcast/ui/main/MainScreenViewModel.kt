@@ -9,7 +9,12 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainScreenViewModel @Inject constructor(
-    playerRepository: PlayerRepository
+    private val playerRepository: PlayerRepository
 ) : ViewModel() {
     val playerState: StateFlow<PlayerState> = playerRepository.playerState
+
+    fun togglePlayPause() {
+        if (playerState.value.isPlaying) playerRepository.pause()
+        else playerRepository.resume()
+    }
 }
