@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.Podcast
+import com.example.mypodcast.domain.repository.LibraryRepository
+import com.example.mypodcast.domain.repository.PlayerRepository
 import com.example.mypodcast.domain.usecase.library.GetLibraryUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +25,9 @@ data class LibraryUiState(
 
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
-    private val getLibrary: GetLibraryUseCase
+    private val getLibrary: GetLibraryUseCase,
+    private val libraryRepository: LibraryRepository,
+    private val playerRepository: PlayerRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LibraryUiState())
@@ -43,4 +47,10 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun selectTab(tab: LibraryTab) = _uiState.update { it.copy(selectedTab = tab) }
+
+    fun playEpisode(episode: Episode) = playerRepository.play(episode)
+
+    fun deleteDownload(episode: Episode) {
+        viewModelScope.launch { libraryRepository.deleteDownload(episode.guid) }
+    }
 }

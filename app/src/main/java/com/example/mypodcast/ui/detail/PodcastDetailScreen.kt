@@ -125,7 +125,11 @@ fun PodcastDetailScreen(
                             onPlayClick = {
                                 viewModel.playEpisode(episode)
                                 onEpisodePlay(episode.guid)
-                            }
+                            },
+                            isDownloaded = episode.guid in state.downloadedGuids,
+                            downloadState = state.downloadStates[episode.guid],
+                            onDownloadClick = { viewModel.downloadEpisode(episode) },
+                            onDeleteDownloadClick = { viewModel.deleteDownload(episode) }
                         )
                         HorizontalDivider()
                     }

@@ -43,7 +43,13 @@
       "Bash(android info *)",
       "Read(//Users/wsonguci/Library/Android/sdk/**)",
       "Bash(./gradlew installDebug -P android.injected.serial=emulator-5554)",
-      "Bash(adb disconnect *)"
+      "Bash(adb disconnect *)",
+      "Bash(adb -s emulator-5554 exec-out screencap -p)",
+      "Bash(adb -s emulator-5554 shell input tap 595 363)",
+      "Bash(adb -s emulator-5554 shell input tap 849 1552)",
+      "Bash(adb -s emulator-5554 shell input tap 906 2274)",
+      "Bash(adb -s emulator-5554 shell input tap 540 256)",
+      "Bash(adb -s emulator-5554 shell input tap 810 125)"
     ]
   }
 }

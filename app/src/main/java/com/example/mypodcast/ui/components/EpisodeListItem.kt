@@ -1,6 +1,7 @@
 package com.example.mypodcast.ui.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,7 +11,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -19,10 +23,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.example.mypodcast.domain.model.DownloadState
 import com.example.mypodcast.domain.model.Episode
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -32,7 +38,11 @@ import java.util.Locale
 fun EpisodeListItem(
     episode: Episode,
     onPlayClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isDownloaded: Boolean = false,
+    downloadState: DownloadState? = null,
+    onDownloadClick: (() -> Unit)? = null,
+    onDeleteDownloadClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = modifier
@@ -65,8 +75,56 @@ fun EpisodeListItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+
+        if (onDownloadClick != null || isDownloaded) {
+            DownloadButton(
+                isDownloaded = isDownloaded,
+                downloadState = downloadState,
+                onDownloadClick = onDownloadClick,
+                onDeleteDownloadClick = onDeleteDownloadClick
+            )
+        }
+
         IconButton(onClick = onPlayClick) {
             Icon(Icons.Default.PlayArrow, contentDescription = "Play")
+        }
+    }
+}
+
+@Composable
+private fun DownloadButton(
+    isDownloaded: Boolean,
+    downloadState: DownloadState?,
+    onDownloadClick: (() -> Unit)?,
+    onDeleteDownloadClick: (() -> Unit)?
+) {
+    when {
+        isDownloaded -> {
+            IconButton(onClick = { onDeleteDownloadClick?.invoke() }) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = "Downloaded — tap to delete",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+        downloadState is DownloadState.Downloading -> {
+            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(
+                    progress = { downloadState.progressPercent / 100f },
+                    modifier = Modifier.size(28.dp),
+                    strokeWidth = 2.5.dp
+                )
+                Text(
+                    text = "${downloadState.progressPercent}",
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+        }
+        else -> {
+            IconButton(onClick = { onDownloadClick?.invoke() }) {
+                Icon(Icons.Default.Download, contentDescription = "Download")
+            }
         }
     }
 }

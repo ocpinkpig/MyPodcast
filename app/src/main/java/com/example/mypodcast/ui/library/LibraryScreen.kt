@@ -23,6 +23,7 @@ import com.example.mypodcast.ui.components.PodcastCard
 @Composable
 fun LibraryScreen(
     onPodcastClick: (Long) -> Unit,
+    onEpisodePlay: (String) -> Unit = {},
     viewModel: LibraryViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -72,7 +73,15 @@ fun LibraryScreen(
                 } else {
                     LazyColumn(Modifier.fillMaxSize()) {
                         items(state.downloads, key = { it.guid }) { episode ->
-                            EpisodeListItem(episode = episode, onPlayClick = {})
+                            EpisodeListItem(
+                                episode = episode,
+                                onPlayClick = {
+                                    viewModel.playEpisode(episode)
+                                    onEpisodePlay(episode.guid)
+                                },
+                                isDownloaded = true,
+                                onDeleteDownloadClick = { viewModel.deleteDownload(episode) }
+                            )
                             HorizontalDivider()
                         }
                     }

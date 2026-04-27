@@ -14,6 +14,7 @@ import com.example.mypodcast.domain.repository.LibraryRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -33,7 +34,8 @@ class LibraryRepositoryImpl @Inject constructor(
     override fun observeSubscriptions(): Flow<List<Podcast>> =
         subscriptionDao.observeAll().flatMapLatest { subs ->
             val ids = subs.map { it.podcastId }
-            podcastDao.observeByIds(ids).map { entities ->
+            if (ids.isEmpty()) flowOf(emptyList())
+            else podcastDao.observeByIds(ids).map { entities ->
                 entities.map { e ->
                     Podcast(
                         id = e.id,
@@ -54,25 +56,27 @@ class LibraryRepositoryImpl @Inject constructor(
 
     override fun observeDownloadedEpisodes(): Flow<List<Episode>> =
         downloadedEpisodeDao.observeAll().flatMapLatest { downloads ->
-            val guids = downloads.map { it.episodeGuid }
-            combine(guids.map { guid ->
-                episodeDao.observeByPodcast(0).map { episodes ->
-                    episodes.firstOrNull { it.guid == guid }
+            if (downloads.isEmpty()) flowOf(emptyList())
+            else {
+                val guids = downloads.map { it.episodeGuid }
+                val pathByGuid = downloads.associate { it.episodeGuid to it.localFilePath }
+                episodeDao.observeByGuids(guids).map { entities ->
+                    entities.map { e ->
+                        Episode(
+                            guid = e.guid,
+                            podcastId = e.podcastId,
+                            title = e.title,
+                            description = e.description,
+                            audioUrl = pathByGuid[e.guid] ?: e.audioUrl,
+                            artworkUrl = e.artworkUrl,
+                            publishedAt = e.publishedAt,
+                            durationSeconds = e.durationSeconds,
+                            fileSizeBytes = e.fileSizeBytes,
+                            playbackPosition = e.playbackPosition
+                        )
+                    }
                 }
-            }) { array -> array.filterNotNull().map { e ->
-                Episode(
-                    guid = e.guid,
-                    podcastId = e.podcastId,
-                    title = e.title,
-                    description = e.description,
-                    audioUrl = e.audioUrl,
-                    artworkUrl = e.artworkUrl,
-                    publishedAt = e.publishedAt,
-                    durationSeconds = e.durationSeconds,
-                    fileSizeBytes = e.fileSizeBytes,
-                    playbackPosition = e.playbackPosition
-                )
-            }}
+            }
         }
 
     override fun observeIsDownloaded(episodeGuid: String): Flow<Boolean> =
