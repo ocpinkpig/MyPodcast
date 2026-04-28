@@ -48,7 +48,11 @@ class LibraryViewModel @Inject constructor(
 
     fun selectTab(tab: LibraryTab) = _uiState.update { it.copy(selectedTab = tab) }
 
-    fun playEpisode(episode: Episode) = playerRepository.play(episode)
+    /**
+     * Loads the episode into the player without auto-starting playback.
+     * The user kicks off playback from the PlayerScreen.
+     */
+    fun playEpisode(episode: Episode) = playerRepository.prepare(episode)
 
     fun deleteDownload(episode: Episode) {
         viewModelScope.launch { libraryRepository.deleteDownload(episode.guid) }

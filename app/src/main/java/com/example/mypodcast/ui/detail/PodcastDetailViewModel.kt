@@ -149,5 +149,9 @@ class PodcastDetailViewModel @Inject constructor(
         }
     }
 
-    fun playEpisode(episode: Episode) = playerRepository.play(episode)
+    /**
+     * Loads the episode into the player without auto-starting playback.
+     * The user kicks off playback from the PlayerScreen.
+     */
+    fun playEpisode(episode: Episode) = playerRepository.prepare(episode)
 }

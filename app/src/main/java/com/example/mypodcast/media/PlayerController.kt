@@ -75,6 +75,21 @@ class PlayerController @Inject constructor(
     }
 
     fun playEpisode(episode: Episode) {
+        loadEpisode(episode, autoPlay = true)
+    }
+
+    fun prepareEpisode(episode: Episode) {
+        // No-op when this episode is already loaded — preserves current
+        // play/pause state (and position) when the user re-opens the same
+        // episode from a list row.
+        if (currentEpisode?.guid == episode.guid) {
+            _playerState.update { it.copy(episode = episode, error = null) }
+            return
+        }
+        loadEpisode(episode, autoPlay = false)
+    }
+
+    private fun loadEpisode(episode: Episode, autoPlay: Boolean) {
         currentEpisode = episode
         val mediaItem = MediaItem.Builder()
             .setUri(episode.audioUrl)
@@ -89,7 +104,7 @@ class PlayerController @Inject constructor(
         exoPlayer.setMediaItem(mediaItem)
         if (episode.playbackPosition > 0L) exoPlayer.seekTo(episode.playbackPosition)
         exoPlayer.prepare()
-        exoPlayer.play()
+        if (autoPlay) exoPlayer.play() else exoPlayer.pause()
         _playerState.update { it.copy(episode = episode, error = null) }
     }
 

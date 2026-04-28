@@ -14,6 +14,7 @@ class PlayerRepositoryImpl @Inject constructor(
     override val playerState: StateFlow<PlayerState> = playerController.playerState
 
     override fun play(episode: Episode) = playerController.playEpisode(episode)
+    override fun prepare(episode: Episode) = playerController.prepareEpisode(episode)
     override fun pause() = playerController.pause()
     override fun resume() = playerController.resume()
     override fun seekTo(positionMs: Long) = playerController.seekTo(positionMs)

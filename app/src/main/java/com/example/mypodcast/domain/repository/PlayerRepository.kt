@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 interface PlayerRepository {
     val playerState: StateFlow<PlayerState>
     fun play(episode: Episode)
+    fun prepare(episode: Episode)
     fun pause()
     fun resume()
     fun seekTo(positionMs: Long)
