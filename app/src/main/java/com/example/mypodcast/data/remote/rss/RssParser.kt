@@ -32,6 +32,8 @@ class RssParser @Inject constructor(private val okHttpClient: OkHttpClient) {
 
         var feedTitle = ""
         var feedImage: String? = null
+        val feedDescriptionBuf = StringBuilder()
+        val feedItunesSummaryBuf = StringBuilder()
         val episodes = mutableListOf<RssEpisode>()
 
         var inItem = false
@@ -90,9 +92,9 @@ class RssParser @Inject constructor(private val okHttpClient: OkHttpClient) {
                                 else -> if (feedTitle.isEmpty()) feedTitle = trimmed
                             }
                             "guid" -> if (inItem && trimmed.isNotEmpty()) guid = trimmed
-                            "description" -> if (inItem) descriptionBuf.append(raw)
+                            "description" -> if (inItem) descriptionBuf.append(raw) else if (!inImage) feedDescriptionBuf.append(raw)
                             "content:encoded" -> if (inItem) contentEncodedBuf.append(raw)
-                            "itunes:summary" -> if (inItem) itunesSummaryBuf.append(raw)
+                            "itunes:summary" -> if (inItem) itunesSummaryBuf.append(raw) else feedItunesSummaryBuf.append(raw)
                             "pubDate" -> if (inItem && trimmed.isNotEmpty()) publishedAt = parseDate(trimmed)
                             "itunes:duration" -> if (inItem && trimmed.isNotEmpty()) durationSeconds = parseDuration(trimmed)
                             "url" -> if (inImage && trimmed.isNotEmpty()) feedImage = trimmed
@@ -134,7 +136,17 @@ class RssParser @Inject constructor(private val okHttpClient: OkHttpClient) {
             eventType = parser.next()
         }
 
-        RssFeed(title = feedTitle, imageUrl = feedImage, episodes = episodes)
+        val feedDescription = sequenceOf(
+            feedDescriptionBuf.toString().trim(),
+            feedItunesSummaryBuf.toString().trim()
+        ).firstOrNull { it.isNotEmpty() }
+
+        RssFeed(
+            title = feedTitle,
+            imageUrl = feedImage,
+            description = feedDescription,
+            episodes = episodes
+        )
     }
 
     private fun parseDate(raw: String): Long {

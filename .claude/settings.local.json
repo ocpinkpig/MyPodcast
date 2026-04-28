@@ -71,7 +71,12 @@
       "Bash(adb -s emulator-5554 shell input tap 805 532)",
       "Bash(adb -s emulator-5554 shell input tap 975 1443)",
       "Bash(adb -s emulator-5554 shell input tap 540 284)",
-      "Bash(adb -s emulator-5554 shell input tap 275 514)"
+      "Bash(adb -s emulator-5554 shell input tap 275 514)",
+      "Bash(git switch *)",
+      "Bash(git merge *)",
+      "Bash(adb -s emulator-5554 shell input swipe 800 600 200 600 400)",
+      "Bash(adb -s emulator-5554 shell pm clear com.example.mypodcast)",
+      "Bash(adb -s emulator-5554 shell input tap 595 1565)"
     ]
   }
 }

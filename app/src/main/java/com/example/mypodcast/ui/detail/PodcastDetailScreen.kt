@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,8 +15,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FilterList
@@ -32,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -42,6 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.text.HtmlCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -80,6 +87,7 @@ fun PodcastDetailScreen(
                         artworkUrl = podcast.artworkUrl,
                         title = podcast.title,
                         artistName = podcast.artistName,
+                        description = podcast.description,
                         isSubscribed = state.isSubscribed,
                         onBack = onBack,
                         onSubscribeToggle = { viewModel.toggleSubscription(podcastId) }
@@ -112,10 +120,13 @@ private fun PodcastHero(
     artworkUrl: String?,
     title: String,
     artistName: String,
+    description: String?,
     isSubscribed: Boolean,
     onBack: () -> Unit,
     onSubscribeToggle: () -> Unit
 ) {
+    val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
+
     Box(modifier = Modifier.fillMaxWidth()) {
         AsyncImage(
             model = artworkUrl,
@@ -173,15 +184,30 @@ private fun PodcastHero(
 
                 Spacer(Modifier.height(8.dp))
 
-                AsyncImage(
-                    model = artworkUrl,
-                    contentDescription = title,
-                    contentScale = ContentScale.Crop,
+                HorizontalPager(
+                    state = pagerState,
+                    contentPadding = PaddingValues(horizontal = 48.dp),
+                    pageSpacing = 16.dp,
                     modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .size(280.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                )
+                        .fillMaxWidth()
+                        .height(280.dp)
+                ) { page ->
+                    when (page) {
+                        0 -> AsyncImage(
+                            model = artworkUrl,
+                            contentDescription = title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(8.dp))
+                        )
+                        else -> ChannelInfoCard(
+                            title = title,
+                            artistName = artistName,
+                            description = description
+                        )
+                    }
+                }
 
                 Spacer(Modifier.height(12.dp))
 
@@ -216,12 +242,60 @@ private fun PodcastHero(
 
                 PageIndicator(
                     total = 2,
-                    selected = 0,
+                    selected = pagerState.currentPage,
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
                         .padding(bottom = 16.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ChannelInfoCard(
+    title: String,
+    artistName: String,
+    description: String?
+) {
+    val cleaned = remember(description) {
+        description
+            ?.takeIf { it.isNotBlank() }
+            ?.let { HtmlCompat.fromHtml(it, HtmlCompat.FROM_HTML_MODE_COMPACT).toString().trim() }
+            ?.takeIf { it.isNotEmpty() }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color.Black.copy(alpha = 0.28f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            Text(
+                text = title,
+                color = Color.White,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (artistName.isNotBlank()) {
+                Text(
+                    text = artistName,
+                    color = Color.White.copy(alpha = 0.8f),
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = cleaned ?: "No description available.",
+                color = Color.White.copy(alpha = 0.92f),
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }

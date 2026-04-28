@@ -3,6 +3,7 @@ package com.example.mypodcast.data.remote.rss.model
 data class RssFeed(
     val title: String,
     val imageUrl: String?,
+    val description: String?,
     val episodes: List<RssEpisode>
 )
 

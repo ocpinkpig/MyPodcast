@@ -30,10 +30,21 @@ class PodcastRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getDetail(podcastId: Long): Podcast {
-        val response = api.lookup(id = podcastId)
-        val entity = response.results.firstOrNull()?.toEntityOrNull()
-            ?: podcastDao.getById(podcastId)
-            ?: error("Podcast $podcastId not found")
+        val response = runCatching { api.lookup(id = podcastId) }.getOrNull()
+        val fromApi = response?.results?.firstOrNull()?.toEntityOrNull()
+        val existing = podcastDao.getById(podcastId)
+        val entity = when {
+            fromApi != null && existing != null -> fromApi.copy(
+                // Preserve description backfilled from the RSS feed — iTunes
+                // Search API doesn't return one for podcast lookups, so without
+                // this we'd overwrite the parsed channel description with null.
+                description = fromApi.description?.takeIf { it.isNotBlank() }
+                    ?: existing.description
+            )
+            fromApi != null -> fromApi
+            existing != null -> existing
+            else -> error("Podcast $podcastId not found")
+        }
         podcastDao.upsert(entity)
         return entity.toDomain()
     }

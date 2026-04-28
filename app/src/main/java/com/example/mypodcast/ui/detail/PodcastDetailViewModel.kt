@@ -95,7 +95,9 @@ class PodcastDetailViewModel @Inject constructor(
                 val podcast = getPodcastDetail(podcastId)
                 _uiState.update { it.copy(podcast = podcast) }
                 getEpisodes.fetch(podcastId, podcast.feedUrl)
-                _uiState.update { it.copy(isLoading = false) }
+                // Re-load — fetch may have backfilled the description from the RSS feed.
+                val refreshed = getPodcastDetail(podcastId)
+                _uiState.update { it.copy(isLoading = false, podcast = refreshed) }
             }.onFailure { err ->
                 _uiState.update { it.copy(isLoading = false, error = err.message) }
             }

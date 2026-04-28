@@ -1,6 +1,7 @@
 package com.example.mypodcast.data.repository
 
 import com.example.mypodcast.data.local.dao.EpisodeDao
+import com.example.mypodcast.data.local.dao.PodcastDao
 import com.example.mypodcast.data.local.entity.EpisodeEntity
 import com.example.mypodcast.data.remote.rss.RssParser
 import com.example.mypodcast.data.remote.rss.model.RssEpisode
@@ -12,13 +13,27 @@ import javax.inject.Inject
 
 class EpisodeRepositoryImpl @Inject constructor(
     private val rssParser: RssParser,
-    private val episodeDao: EpisodeDao
+    private val episodeDao: EpisodeDao,
+    private val podcastDao: PodcastDao
 ) : EpisodeRepository {
 
     override suspend fun fetchEpisodesForPodcast(podcastId: Long, feedUrl: String): List<Episode> {
         val feed = rssParser.parse(feedUrl)
         val entities = feed.episodes.map { it.toEntity(podcastId) }
         episodeDao.upsertAll(entities)
+
+        // Backfill the podcast's description from the RSS feed channel-level
+        // <description> / <itunes:summary>. iTunes Search doesn't return one,
+        // so this is the only way to populate it.
+        val feedDescription = feed.description?.takeIf { it.isNotBlank() }
+        if (feedDescription != null) {
+            podcastDao.getById(podcastId)?.let { existing ->
+                if (existing.description.isNullOrBlank()) {
+                    podcastDao.upsert(existing.copy(description = feedDescription))
+                }
+            }
+        }
+
         return entities.map { it.toDomain() }
     }
 
