@@ -1,10 +1,14 @@
 package com.example.mypodcast.ui.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,7 +32,6 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay30
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,7 +53,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -198,7 +207,9 @@ private fun PlaybackPage(
         val artworkSize = if (maxHeight < 620.dp) 132.dp else 176.dp
 
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -206,7 +217,7 @@ private fun PlaybackPage(
 
             AsyncImage(
                 model = episode?.artworkUrl,
-                contentDescription = episode?.title,
+                contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(artworkSize)
@@ -236,7 +247,7 @@ private fun PlaybackPage(
                 )
             }
 
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(8.dp))
 
             PlayerProgress(
                 positionMs = state.positionMs,
@@ -283,33 +294,63 @@ private fun PlaybackPage(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PlayerStatusChips(
     speed: Float,
     sleepTimerRemainingMs: Long,
     isDownloaded: Boolean
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (isDownloaded) {
-            AssistChip(
-                onClick = {},
-                label = { Text("Downloaded") },
-                leadingIcon = { Icon(Icons.Default.DownloadDone, contentDescription = null) }
+            StatusPill(
+                icon = Icons.Default.DownloadDone,
+                label = "Downloaded"
             )
         }
-        AssistChip(
-            onClick = {},
-            label = { Text(formatSpeedLabel(speed)) },
-            leadingIcon = { Icon(Icons.Default.GraphicEq, contentDescription = null) }
+        StatusPill(
+            icon = Icons.Default.GraphicEq,
+            label = formatSpeedLabel(speed)
         )
-        AssistChip(
-            onClick = {},
-            label = { Text(formatSleepTimerLabel(sleepTimerRemainingMs)) },
-            leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null) }
+        StatusPill(
+            icon = Icons.Default.Timer,
+            label = formatSleepTimerLabel(sleepTimerRemainingMs)
         )
+    }
+}
+
+@Composable
+private fun StatusPill(
+    icon: ImageVector,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1
+            )
+        }
     }
 }
 
@@ -344,6 +385,8 @@ private fun PrimaryPlaybackControls(
     onSkipBack: () -> Unit,
     onSkipForward: () -> Unit
 ) {
+    val playPauseLabel = if (isPlaying) "Pause" else "Play"
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -358,7 +401,12 @@ private fun PrimaryPlaybackControls(
         }
         Surface(
             onClick = onPlayPause,
-            modifier = Modifier.size(76.dp),
+            modifier = Modifier
+                .size(76.dp)
+                .semantics {
+                    role = Role.Button
+                    contentDescription = playPauseLabel
+                },
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary
@@ -366,14 +414,16 @@ private fun PrimaryPlaybackControls(
             Box(contentAlignment = Alignment.Center) {
                 if (isBuffering) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(34.dp),
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clearAndSetSemantics {},
                         color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 3.dp
                     )
                 } else {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        contentDescription = null,
                         modifier = Modifier.size(42.dp)
                     )
                 }
