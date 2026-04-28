@@ -46,6 +46,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -658,12 +659,38 @@ private fun SpeedSheet(
     onSpeedSelected: (Float) -> Unit,
     onDismiss: () -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(24.dp)) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val speedOptions = listOf(0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Text("Playback speed", style = MaterialTheme.typography.titleLarge)
-            TextButton(onClick = { onSpeedSelected(currentSpeed) }) {
-                Text(formatSpeedLabel(currentSpeed))
+            speedOptions.forEach { speed ->
+                TextButton(
+                    onClick = { onSpeedSelected(speed) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(formatSpeedLabel(speed))
+                        if (speed == currentSpeed) {
+                            Text("Selected", color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
             }
+            Spacer(Modifier.height(12.dp))
         }
     }
 }
@@ -676,12 +703,50 @@ private fun SleepTimerSheet(
     onCancelTimer: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(24.dp)) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val timerOptions = listOf(15, 30, 60)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Text("Sleep timer", style = MaterialTheme.typography.titleLarge)
-            Text(formatSleepTimerLabel(remainingMs))
-            TextButton(onClick = onCancelTimer) { Text("Off") }
-            TextButton(onClick = { onTimerSelected(30) }) { Text("30 minutes") }
+            Text(
+                text = formatSleepTimerLabel(remainingMs),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            TextButton(
+                onClick = onCancelTimer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Off")
+                    if (remainingMs <= 0L) Text("Selected", color = MaterialTheme.colorScheme.primary)
+                }
+            }
+            timerOptions.forEach { minutes ->
+                TextButton(
+                    onClick = { onTimerSelected(minutes) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "$minutes minutes",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Start
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
         }
     }
 }
