@@ -451,6 +451,8 @@ private fun CompactPlaybackControls(
     onSkipForward: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val playPauseLabel = if (isPlaying) "Pause" else "Play"
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         tonalElevation = 2.dp,
@@ -465,15 +467,34 @@ private fun CompactPlaybackControls(
             IconButton(onClick = onSkipBack) {
                 Icon(Icons.Default.Replay30, contentDescription = "Skip back 30 seconds")
             }
-            IconButton(onClick = onPlayPause, modifier = Modifier.size(52.dp)) {
-                if (isBuffering) {
-                    CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.5.dp)
-                } else {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play",
-                        modifier = Modifier.size(32.dp)
-                    )
+            Surface(
+                onClick = onPlayPause,
+                modifier = Modifier
+                    .size(52.dp)
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = playPauseLabel
+                    },
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (isBuffering) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clearAndSetSemantics {},
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.5.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
                 }
             }
             IconButton(onClick = onSkipForward) {
@@ -492,80 +513,102 @@ private fun ShowNotesPage(
     onSkipForward: () -> Unit
 ) {
     val episode = state.episode
-    val showNotes = episode?.description
-        ?.takeIf { it.isNotBlank() }
-        ?.let { HtmlCompat.fromHtml(it, HtmlCompat.FROM_HTML_MODE_COMPACT).toString().trim() }
-        .orEmpty()
+    val description = episode?.description
+    val showNotes = remember(description) {
+        description
+            ?.takeIf { it.isNotBlank() }
+            ?.let { HtmlCompat.fromHtml(it, HtmlCompat.FROM_HTML_MODE_COMPACT).toString().trim() }
+            .orEmpty()
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .verticalScroll(rememberScrollState())
         ) {
-            AsyncImage(
-                model = episode?.artworkUrl,
-                contentDescription = episode?.title,
-                contentScale = ContentScale.Crop,
+            Row(
                 modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(12.dp))
-            )
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = episode?.title ?: "Loading...",
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = "${formatPlaybackTime(state.positionMs)} of ${formatPlaybackTime(state.durationMs)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        PlayerProgress(
-            positionMs = state.positionMs,
-            durationMs = state.durationMs,
-            onSeek = onSeek,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        if (showNotes.isBlank()) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No show notes available.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-            }
-        } else {
-            SelectionContainer(
-                modifier = Modifier
-                    .weight(1f)
                     .fillMaxWidth()
+                    .padding(top = 8.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = showNotes,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.verticalScroll(rememberScrollState())
+                AsyncImage(
+                    model = episode?.artworkUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(12.dp))
                 )
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = episode?.title ?: "Loading...",
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "${formatPlaybackTime(state.positionMs)} of ${formatPlaybackTime(state.durationMs)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            PlayerProgress(
+                positionMs = state.positionMs,
+                durationMs = state.durationMs,
+                onSeek = onSeek,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            if (episode == null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Loading show notes...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else if (showNotes.isBlank()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No show notes available.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                SelectionContainer(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = showNotes,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
             }
         }
 
