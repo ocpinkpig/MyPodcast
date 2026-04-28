@@ -40,7 +40,9 @@ class RssParser @Inject constructor(private val okHttpClient: OkHttpClient) {
 
         var guid = ""
         var title = ""
-        var description: String? = null
+        val descriptionBuf = StringBuilder()
+        val contentEncodedBuf = StringBuilder()
+        val itunesSummaryBuf = StringBuilder()
         var audioUrl = ""
         var artworkUrl: String? = null
         var publishedAt = 0L
@@ -56,7 +58,8 @@ class RssParser @Inject constructor(private val okHttpClient: OkHttpClient) {
                     when {
                         tag == "item" -> {
                             inItem = true
-                            guid = ""; title = ""; description = null
+                            guid = ""; title = ""
+                            descriptionBuf.clear(); contentEncodedBuf.clear(); itunesSummaryBuf.clear()
                             audioUrl = ""; artworkUrl = null
                             publishedAt = 0L; durationSeconds = 0; fileSizeBytes = 0L
                         }
@@ -74,24 +77,25 @@ class RssParser @Inject constructor(private val okHttpClient: OkHttpClient) {
                     }
                 }
 
-                XmlPullParser.TEXT -> {
-                    if (parser.isWhitespace) { /* skip */ }
-                    else {
-                        val text = parser.text?.trim().orEmpty()
-                        if (text.isEmpty()) {
-                            // skip
-                        } else when (currentTag) {
-                            "title" -> when {
-                                inItem -> if (title.isEmpty()) title = text
+                XmlPullParser.TEXT, XmlPullParser.CDSECT -> {
+                    val raw = parser.text ?: ""
+                    if (raw.isEmpty()) {
+                        // skip
+                    } else {
+                        val trimmed = raw.trim()
+                        when (currentTag) {
+                            "title" -> if (trimmed.isNotEmpty()) when {
+                                inItem -> if (title.isEmpty()) title = trimmed
                                 inImage -> { /* skip image title */ }
-                                else -> if (feedTitle.isEmpty()) feedTitle = text
+                                else -> if (feedTitle.isEmpty()) feedTitle = trimmed
                             }
-                            "guid" -> if (inItem) guid = text
-                            "description" -> if (inItem && description == null) description = text
-                            "itunes:summary" -> if (inItem && description == null) description = text
-                            "pubDate" -> if (inItem) publishedAt = parseDate(text)
-                            "itunes:duration" -> if (inItem) durationSeconds = parseDuration(text)
-                            "url" -> if (inImage) feedImage = text
+                            "guid" -> if (inItem && trimmed.isNotEmpty()) guid = trimmed
+                            "description" -> if (inItem) descriptionBuf.append(raw)
+                            "content:encoded" -> if (inItem) contentEncodedBuf.append(raw)
+                            "itunes:summary" -> if (inItem) itunesSummaryBuf.append(raw)
+                            "pubDate" -> if (inItem && trimmed.isNotEmpty()) publishedAt = parseDate(trimmed)
+                            "itunes:duration" -> if (inItem && trimmed.isNotEmpty()) durationSeconds = parseDuration(trimmed)
+                            "url" -> if (inImage && trimmed.isNotEmpty()) feedImage = trimmed
                         }
                     }
                 }
@@ -101,6 +105,11 @@ class RssParser @Inject constructor(private val okHttpClient: OkHttpClient) {
                     when {
                         tag == "item" -> {
                             if (audioUrl.isNotBlank()) {
+                                val description = sequenceOf(
+                                    contentEncodedBuf.toString().trim(),
+                                    descriptionBuf.toString().trim(),
+                                    itunesSummaryBuf.toString().trim()
+                                ).firstOrNull { it.isNotEmpty() }
                                 episodes.add(
                                     RssEpisode(
                                         guid = guid.ifBlank { audioUrl },

@@ -58,7 +58,20 @@
       "Bash(adb -s emulator-5554 shell input tap 618 1401)",
       "Bash(adb -s emulator-5554 shell input tap 812 1401)",
       "Bash(adb -s emulator-5554 shell input tap 975 1359)",
-      "Bash(adb -s emulator-5554 shell input tap 985 2043)"
+      "Bash(adb -s emulator-5554 shell input tap 985 2043)",
+      "Bash(adb -s emulator-5554 exec-out \"run-as com.example.mypodcast cat /data/data/com.example.mypodcast/databases/mypodcast.db\")",
+      "Bash(sqlite3 /tmp/mypodcast.db \"SELECT title, length\\(description\\), substr\\(description, 1, 200\\) FROM episodes LIMIT 3\")",
+      "Bash(curl -s \"https://allinchamathjason.libsyn.com/rss\" -o /tmp/allin.xml)",
+      "Bash(curl -sL \"https://allinchamathjason.libsyn.com/rss\" -o /tmp/allin.xml)",
+      "Bash(awk '/<item>/,/<\\\\/item>/' /tmp/allin.xml)",
+      "Bash(sqlite3 /tmp/mypodcast.db \"SELECT title, length\\(description\\) FROM episodes WHERE description IS NOT NULL AND description != '' LIMIT 5\")",
+      "Bash(sqlite3 /tmp/mypodcast.db \"SELECT count\\(*\\), sum\\(CASE WHEN description IS NOT NULL AND description != '' THEN 1 ELSE 0 END\\) FROM episodes\")",
+      "Bash(sqlite3 /tmp/mypodcast.db \"SELECT description FROM episodes WHERE title = 'The future of cell-free biotechnology'\")",
+      "Bash(sqlite3 /tmp/mypodcast.db \"SELECT title, podcastId, length\\(description\\) FROM episodes WHERE description IS NOT NULL AND length\\(description\\) > 200 LIMIT 3\")",
+      "Bash(adb -s emulator-5554 shell input tap 805 532)",
+      "Bash(adb -s emulator-5554 shell input tap 975 1443)",
+      "Bash(adb -s emulator-5554 shell input tap 540 284)",
+      "Bash(adb -s emulator-5554 shell input tap 275 514)"
     ]
   }
 }

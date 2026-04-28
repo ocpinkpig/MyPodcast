@@ -1,0 +1,117 @@
+<h2>Player UX Direction</h2>
+<p class="subtitle">Pick the layout direction that feels best for the first listening-flow upgrade.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#101820;padding:18px;">
+      <div style="width:210px;height:430px;margin:0 auto;border-radius:30px;background:#f8faf9;color:#14201c;box-shadow:0 16px 40px rgba(0,0,0,.28);overflow:hidden;font-family:system-ui;">
+        <div style="height:42px;display:flex;align-items:center;gap:10px;padding:0 18px;font-size:12px;color:#5f6d67;">
+          <span>&lt;</span><strong style="flex:1;text-align:center;color:#26322e;">Now Playing</strong>
+        </div>
+        <div style="padding:16px 20px;text-align:center;">
+          <div style="width:150px;height:150px;margin:0 auto 18px;border-radius:18px;background:linear-gradient(135deg,#fe6b55,#1b8a7a);"></div>
+          <div style="font-weight:800;font-size:16px;line-height:1.18;margin-bottom:6px;">Design Notes: Building Better Products</div>
+          <div style="font-size:12px;color:#66746f;">Craft & Systems</div>
+          <div style="height:94px;margin:18px 0 10px;text-align:left;font-size:11px;line-height:1.42;color:#5b6863;overflow:hidden;">
+            Today we unpack how teams make product decisions, balance detail with momentum, and keep craft visible...
+          </div>
+          <div style="height:5px;border-radius:999px;background:#d8e2de;position:relative;margin-bottom:7px;">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:42%;border-radius:999px;background:#0f7f70;"></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:#697772;"><span>18:24</span><span>43:50</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;">
+            <button style="border:0;background:#e7efeb;border-radius:50%;width:42px;height:42px;">-30</button>
+            <button style="border:0;background:#0f7f70;color:white;border-radius:50%;width:66px;height:66px;font-size:24px;">II</button>
+            <button style="border:0;background:#e7efeb;border-radius:50%;width:42px;height:42px;">+30</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Immersive Listening</h3>
+      <p>Large artwork, centered controls, show notes stay readable, speed and timer move into compact sheets or chips.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#101820;padding:18px;">
+      <div style="width:210px;height:430px;margin:0 auto;border-radius:30px;background:#fbfaf6;color:#1f251f;box-shadow:0 16px 40px rgba(0,0,0,.28);overflow:hidden;font-family:system-ui;">
+        <div style="height:42px;display:flex;align-items:center;gap:10px;padding:0 18px;font-size:12px;color:#657066;">
+          <span>&lt;</span><strong style="flex:1;text-align:center;color:#263026;">Now Playing</strong>
+        </div>
+        <div style="display:flex;gap:12px;padding:14px 16px 10px;align-items:center;">
+          <div style="width:76px;height:76px;border-radius:14px;background:linear-gradient(135deg,#e4572e,#256eff);"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:800;font-size:14px;line-height:1.15;margin-bottom:5px;">Design Notes: Building Better Products</div>
+            <div style="font-size:11px;color:#6c766c;">Craft & Systems</div>
+          </div>
+        </div>
+        <div style="padding:8px 16px;">
+          <div style="height:5px;border-radius:999px;background:#e2e3dc;position:relative;margin-bottom:7px;">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:42%;border-radius:999px;background:#a64224;"></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:#737a72;"><span>18:24</span><span>43:50</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 16px;">
+          <button style="border:0;background:#eee7dc;border-radius:14px;height:46px;">-30</button>
+          <button style="border:0;background:#a64224;color:white;border-radius:18px;height:58px;font-size:22px;">II</button>
+          <button style="border:0;background:#eee7dc;border-radius:14px;height:46px;">+30</button>
+        </div>
+        <div style="padding:0 16px 10px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+            <button style="border:0;background:#f0eee7;border-radius:12px;height:38px;font-size:12px;">1.5x</button>
+            <button style="border:0;background:#f0eee7;border-radius:12px;height:38px;font-size:12px;">30m timer</button>
+          </div>
+          <div style="font-size:11px;font-weight:700;margin-bottom:6px;">Up next</div>
+          <div style="border-top:1px solid #e2e3dc;padding-top:8px;font-size:11px;line-height:1.3;color:#586058;">
+            Keeping Momentum in Product Teams<br>
+            <span style="color:#8a9289;">Next episode, 37m</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Control Center</h3>
+      <p>More compact artwork, all key controls visible at once, quick speed/timer buttons, and a lightweight up-next preview.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#101820;padding:18px;">
+      <div style="width:210px;height:430px;margin:0 auto;border-radius:30px;background:#f7f7f8;color:#1e2328;box-shadow:0 16px 40px rgba(0,0,0,.28);overflow:hidden;font-family:system-ui;">
+        <div style="height:42px;display:flex;align-items:center;gap:10px;padding:0 18px;font-size:12px;color:#626b76;">
+          <span>&lt;</span><strong style="flex:1;text-align:center;color:#252b31;">Now Playing</strong>
+        </div>
+        <div style="padding:14px 18px 8px;text-align:center;">
+          <div style="width:116px;height:116px;margin:0 auto 12px;border-radius:16px;background:linear-gradient(135deg,#168aad,#f7b801);"></div>
+          <div style="font-weight:800;font-size:15px;line-height:1.18;margin-bottom:4px;">Design Notes: Building Better Products</div>
+          <div style="font-size:11px;color:#66717b;">Craft & Systems</div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:6px;padding:4px 12px 10px;flex-wrap:wrap;">
+          <span style="background:#e6f1f0;color:#0f6f68;border-radius:999px;padding:6px 9px;font-size:10px;">Downloaded</span>
+          <span style="background:#eef0f2;border-radius:999px;padding:6px 9px;font-size:10px;">1.5x</span>
+          <span style="background:#eef0f2;border-radius:999px;padding:6px 9px;font-size:10px;">Timer off</span>
+        </div>
+        <div style="padding:0 16px 10px;">
+          <div style="height:5px;border-radius:999px;background:#dfe4e6;position:relative;margin-bottom:7px;">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:42%;border-radius:999px;background:#147e8f;"></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:#707984;"><span>18:24</span><span>43:50</span></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-around;padding:8px 14px 14px;">
+          <button style="border:0;background:#e9eef0;border-radius:50%;width:44px;height:44px;">-30</button>
+          <button style="border:0;background:#147e8f;color:white;border-radius:50%;width:68px;height:68px;font-size:24px;">II</button>
+          <button style="border:0;background:#e9eef0;border-radius:50%;width:44px;height:44px;">+30</button>
+        </div>
+        <div style="border-top:1px solid #e1e5e7;padding:10px 16px;font-size:11px;line-height:1.38;color:#59636b;">
+          <strong style="display:block;color:#252b31;margin-bottom:4px;">Show notes</strong>
+          Today we unpack how teams make product decisions, balance detail with momentum...
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Balanced Podcast Player</h3>
+      <p>Artwork and controls share priority, status chips expose speed/timer/offline state, and show notes remain one tap away.</p>
+    </div>
+  </div>
+</div>
