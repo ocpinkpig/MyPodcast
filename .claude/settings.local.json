@@ -76,7 +76,21 @@
       "Bash(git merge *)",
       "Bash(adb -s emulator-5554 shell input swipe 800 600 200 600 400)",
       "Bash(adb -s emulator-5554 shell pm clear com.example.mypodcast)",
-      "Bash(adb -s emulator-5554 shell input tap 595 1565)"
+      "Bash(adb -s emulator-5554 shell input tap 595 1565)",
+      "Bash(python3 -c \"import sys, json; data = json.loads\\(sys.stdin.read\\(\\)\\); [print\\(item.get\\('text', item.get\\('content-desc', ''\\)\\), item.get\\('center'\\)\\) for item in data if 'Subscribe' in str\\(item.get\\('text', ''\\)\\) or 'Subscribe' in str\\(item.get\\('content-desc', ''\\)\\)]\")",
+      "Bash(adb -s emulator-5554 shell input tap 850 1075)",
+      "Bash(python3 -c ' *)",
+      "Bash(adb -s emulator-5554 shell input keyevent 82)",
+      "Bash(adb -s emulator-5554 shell input swipe 540 1800 540 800 200)",
+      "Bash(adb -s emulator-5554 shell input keyevent KEYCODE_WAKEUP)",
+      "Bash(adb -s emulator-5554 shell input keyevent KEYCODE_MENU)",
+      "Bash(python3)",
+      "Bash(adb -s emulator-5554 shell settings put system screen_off_timeout 600000)",
+      "Bash(adb -s emulator-5554 shell wm dismiss-keyguard)",
+      "Bash(adb -s emulator-5554 shell input swipe 540 2200 540 800 300)",
+      "Bash(adb -s emulator-5554 shell input keyevent KEYCODE_HOME)",
+      "Bash(adb -s emulator-5554 shell input tap 860 1075)",
+      "Bash(adb -s emulator-5554 shell input tap 860 1130)"
     ]
   }
 }

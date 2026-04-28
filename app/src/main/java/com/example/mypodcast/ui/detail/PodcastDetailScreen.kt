@@ -23,9 +23,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -91,6 +94,16 @@ fun PodcastDetailScreen(
                         isSubscribed = state.isSubscribed,
                         onBack = onBack,
                         onSubscribeToggle = { viewModel.toggleSubscription(podcastId) }
+                    )
+                }
+                item {
+                    SubscribeBar(
+                        episodeCount = state.episodes.size,
+                        isSubscribed = state.isSubscribed,
+                        onSubscribeToggle = { viewModel.toggleSubscription(podcastId) }
+                    )
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                     )
                 }
                 items(state.episodes, key = { it.guid }) { episode ->
@@ -159,10 +172,10 @@ private fun PodcastHero(
                         )
                     }
                     Spacer(Modifier.weight(1f))
-                    IconButton(onClick = onSubscribeToggle) {
+                    IconButton(onClick = { /* filter placeholder */ }) {
                         Icon(
                             Icons.Default.FilterList,
-                            contentDescription = if (isSubscribed) "Unsubscribe" else "Subscribe",
+                            contentDescription = "Filter",
                             tint = Color.White
                         )
                     }
@@ -248,6 +261,52 @@ private fun PodcastHero(
                         .padding(bottom = 16.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun SubscribeBar(
+    episodeCount: Int,
+    isSubscribed: Boolean,
+    onSubscribeToggle: () -> Unit
+) {
+    val purple = Color(0xFF8B5CF6)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = if (episodeCount == 1) "1 episode" else "$episodeCount episodes",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f)
+        )
+        Button(
+            onClick = onSubscribeToggle,
+            shape = RoundedCornerShape(50),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isSubscribed) purple.copy(alpha = 0.15f) else purple,
+                contentColor = if (isSubscribed) purple else Color.White
+            ),
+            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp)
+        ) {
+            if (isSubscribed) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.size(6.dp))
+            }
+            Text(
+                text = if (isSubscribed) "Subscribed" else "Subscribe",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
