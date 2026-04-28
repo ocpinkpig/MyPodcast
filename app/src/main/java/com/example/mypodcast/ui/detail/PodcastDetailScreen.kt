@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -57,6 +58,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.example.mypodcast.ui.components.LoadingIndicator
 import com.example.mypodcast.ui.components.PodcastEpisodeRow
+import com.example.mypodcast.ui.player.MiniPlayerBar
 
 @Composable
 fun PodcastDetailScreen(
@@ -68,12 +70,17 @@ fun PodcastDetailScreen(
     LaunchedEffect(podcastId) { viewModel.load(podcastId) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    when {
-        state.isLoading && state.podcast == null -> {
-            Scaffold { padding -> LoadingIndicator(Modifier.padding(padding)) }
-        }
-        state.error != null && state.podcast == null -> {
-            Scaffold { padding ->
+    Scaffold(
+        bottomBar = { MiniPlayerBar(onOpenPlayer = onEpisodePlay) },
+        // Let the hero artwork extend behind the status bar — the hero
+        // applies its own statusBarsPadding to the action row.
+        contentWindowInsets = WindowInsets(0)
+    ) { padding ->
+        when {
+            state.isLoading && state.podcast == null -> {
+                LoadingIndicator(Modifier.padding(padding))
+            }
+            state.error != null && state.podcast == null -> {
                 Text(
                     text = "Error: ${state.error}",
                     modifier = Modifier
@@ -81,47 +88,51 @@ fun PodcastDetailScreen(
                         .padding(16.dp)
                 )
             }
-        }
-        else -> {
-            val podcast = state.podcast ?: return
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                item {
-                    PodcastHero(
-                        artworkUrl = podcast.artworkUrl,
-                        title = podcast.title,
-                        artistName = podcast.artistName,
-                        description = podcast.description,
-                        isSubscribed = state.isSubscribed,
-                        onBack = onBack,
-                        onSubscribeToggle = { viewModel.toggleSubscription(podcastId) }
-                    )
-                }
-                item {
-                    SubscribeBar(
-                        episodeCount = state.episodes.size,
-                        isSubscribed = state.isSubscribed,
-                        onSubscribeToggle = { viewModel.toggleSubscription(podcastId) }
-                    )
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                    )
-                }
-                items(state.episodes, key = { it.guid }) { episode ->
-                    PodcastEpisodeRow(
-                        episode = episode,
-                        isDownloaded = episode.guid in state.downloadedGuids,
-                        downloadState = state.downloadStates[episode.guid],
-                        onPlayClick = {
-                            viewModel.playEpisode(episode)
-                            onEpisodePlay(episode.guid)
-                        },
-                        onDownloadClick = { viewModel.downloadEpisode(episode) },
-                        onCancelDownloadClick = { viewModel.cancelDownload(episode.guid) },
-                        onDeleteDownloadClick = { viewModel.deleteDownload(episode) }
-                    )
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                    )
+            else -> {
+                val podcast = state.podcast ?: return@Scaffold
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                ) {
+                    item {
+                        PodcastHero(
+                            artworkUrl = podcast.artworkUrl,
+                            title = podcast.title,
+                            artistName = podcast.artistName,
+                            description = podcast.description,
+                            isSubscribed = state.isSubscribed,
+                            onBack = onBack,
+                            onSubscribeToggle = { viewModel.toggleSubscription(podcastId) }
+                        )
+                    }
+                    item {
+                        SubscribeBar(
+                            episodeCount = state.episodes.size,
+                            isSubscribed = state.isSubscribed,
+                            onSubscribeToggle = { viewModel.toggleSubscription(podcastId) }
+                        )
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                        )
+                    }
+                    items(state.episodes, key = { it.guid }) { episode ->
+                        PodcastEpisodeRow(
+                            episode = episode,
+                            isDownloaded = episode.guid in state.downloadedGuids,
+                            downloadState = state.downloadStates[episode.guid],
+                            onPlayClick = {
+                                viewModel.playEpisode(episode)
+                                onEpisodePlay(episode.guid)
+                            },
+                            onDownloadClick = { viewModel.downloadEpisode(episode) },
+                            onCancelDownloadClick = { viewModel.cancelDownload(episode.guid) },
+                            onDeleteDownloadClick = { viewModel.deleteDownload(episode) }
+                        )
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                        )
+                    }
                 }
             }
         }

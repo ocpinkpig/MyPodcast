@@ -14,40 +14,26 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.example.mypodcast.HomeNavKey
 import com.example.mypodcast.LibraryNavKey
 import com.example.mypodcast.PlayerNavKey
 import com.example.mypodcast.SearchNavKey
-import com.example.mypodcast.ui.player.MiniPlayer
+import com.example.mypodcast.ui.player.MiniPlayerBar
 
 @Composable
 fun MainScreen(
     backStack: MutableList<NavKey>,
     onNavigate: (NavKey) -> Unit,
-    viewModel: MainScreenViewModel = hiltViewModel(),
     content: @Composable () -> Unit
 ) {
-    val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val currentRoot = backStack.firstOrNull { it is HomeNavKey || it is SearchNavKey || it is LibraryNavKey }
 
     Scaffold(
         bottomBar = {
             Column {
-                if (playerState.episode != null) {
-                    MiniPlayer(
-                        state = playerState,
-                        onTap = {
-                            val guid = playerState.episode?.guid ?: return@MiniPlayer
-                            onNavigate(PlayerNavKey(guid))
-                        },
-                        onPlayPauseClick = { viewModel.togglePlayPause() }
-                    )
-                }
+                MiniPlayerBar(onOpenPlayer = { guid -> onNavigate(PlayerNavKey(guid)) })
                 NavigationBar {
                     NavigationBarItem(
                         selected = currentRoot is HomeNavKey,
