@@ -22,6 +22,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DownloadDone
@@ -62,7 +63,9 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.text.HtmlCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -440,6 +443,47 @@ private fun PrimaryPlaybackControls(
 }
 
 @Composable
+private fun CompactPlaybackControls(
+    isPlaying: Boolean,
+    isBuffering: Boolean,
+    onPlayPause: () -> Unit,
+    onSkipBack: () -> Unit,
+    onSkipForward: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        tonalElevation = 2.dp,
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onSkipBack) {
+                Icon(Icons.Default.Replay30, contentDescription = "Skip back 30 seconds")
+            }
+            IconButton(onClick = onPlayPause, modifier = Modifier.size(52.dp)) {
+                if (isBuffering) {
+                    CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.5.dp)
+                } else {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+            IconButton(onClick = onSkipForward) {
+                Icon(Icons.Default.Forward30, contentDescription = "Skip forward 30 seconds")
+            }
+        }
+    }
+}
+
+@Composable
 private fun ShowNotesPage(
     state: PlayerState,
     onSeek: (Long) -> Unit,
@@ -447,14 +491,92 @@ private fun ShowNotesPage(
     onSkipBack: () -> Unit,
     onSkipForward: () -> Unit
 ) {
+    val episode = state.episode
+    val showNotes = episode?.description
+        ?.takeIf { it.isNotBlank() }
+        ?.let { HtmlCompat.fromHtml(it, HtmlCompat.FROM_HTML_MODE_COMPACT).toString().trim() }
+        .orEmpty()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .padding(horizontal = 20.dp)
     ) {
-        Text("Show notes", style = MaterialTheme.typography.titleMedium)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = episode?.artworkUrl,
+                contentDescription = episode?.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(12.dp))
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = episode?.title ?: "Loading...",
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "${formatPlaybackTime(state.positionMs)} of ${formatPlaybackTime(state.durationMs)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        PlayerProgress(
+            positionMs = state.positionMs,
+            durationMs = state.durationMs,
+            onSeek = onSeek,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        if (showNotes.isBlank()) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No show notes available.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            SelectionContainer(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = showNotes,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                )
+            }
+        }
+
+        CompactPlaybackControls(
+            isPlaying = state.isPlaying,
+            isBuffering = state.isBuffering,
+            onPlayPause = onPlayPause,
+            onSkipBack = onSkipBack,
+            onSkipForward = onSkipForward,
+            modifier = Modifier.padding(vertical = 10.dp)
+        )
     }
 }
 
