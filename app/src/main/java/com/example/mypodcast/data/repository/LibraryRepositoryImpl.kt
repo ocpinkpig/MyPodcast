@@ -15,6 +15,7 @@ import com.example.mypodcast.domain.repository.LibraryRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -65,7 +66,11 @@ class LibraryRepositoryImpl @Inject constructor(
             else {
                 val guids = downloads.map { it.episodeGuid }
                 val pathByGuid = downloads.associate { it.episodeGuid to it.localFilePath }
-                episodeDao.observeByGuids(guids).map { entities ->
+                val podcastIds = downloads.map { it.podcastId }.distinct()
+                episodeDao.observeByGuids(guids).combine(
+                    podcastDao.observeByIds(podcastIds)
+                ) { entities, podcasts ->
+                    val artworkByPodcastId = podcasts.associate { it.id to it.artworkUrl }
                     entities.map { e ->
                         Episode(
                             guid = e.guid,
@@ -73,7 +78,8 @@ class LibraryRepositoryImpl @Inject constructor(
                             title = e.title,
                             description = e.description,
                             audioUrl = pathByGuid[e.guid] ?: e.audioUrl,
-                            artworkUrl = e.artworkUrl,
+                            artworkUrl = e.artworkUrl?.takeIf { it.isNotBlank() }
+                                ?: artworkByPodcastId[e.podcastId],
                             publishedAt = e.publishedAt,
                             durationSeconds = e.durationSeconds,
                             fileSizeBytes = e.fileSizeBytes,

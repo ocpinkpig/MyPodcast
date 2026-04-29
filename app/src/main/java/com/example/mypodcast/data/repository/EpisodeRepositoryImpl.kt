@@ -8,6 +8,7 @@ import com.example.mypodcast.data.remote.rss.model.RssEpisode
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.repository.EpisodeRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -26,22 +27,28 @@ class EpisodeRepositoryImpl @Inject constructor(
         // <description> / <itunes:summary>. iTunes Search doesn't return one,
         // so this is the only way to populate it.
         val feedDescription = feed.description?.takeIf { it.isNotBlank() }
-        if (feedDescription != null) {
-            podcastDao.getById(podcastId)?.let { existing ->
-                if (existing.description.isNullOrBlank()) {
-                    podcastDao.upsert(existing.copy(description = feedDescription))
-                }
-            }
+        val existingPodcast = podcastDao.getById(podcastId)
+        if (feedDescription != null && existingPodcast != null && existingPodcast.description.isNullOrBlank()) {
+            podcastDao.upsert(existingPodcast.copy(description = feedDescription))
         }
 
-        return entities.map { it.toDomain() }
+        val podcastArtwork = existingPodcast?.artworkUrl
+        return entities.map { it.toDomain(podcastArtwork) }
     }
 
-    override fun observeEpisodesForPodcast(podcastId: Long): Flow<List<Episode>> =
-        episodeDao.observeByPodcast(podcastId).map { list -> list.map { it.toDomain() } }
+    override fun observeEpisodesForPodcast(podcastId: Long): Flow<List<Episode>> {
+        val podcastArtworkFlow = podcastDao.observeByIds(listOf(podcastId))
+            .map { it.firstOrNull()?.artworkUrl }
+        return episodeDao.observeByPodcast(podcastId).combine(podcastArtworkFlow) { entities, artwork ->
+            entities.map { it.toDomain(artwork) }
+        }
+    }
 
-    override suspend fun getEpisode(guid: String): Episode? =
-        episodeDao.getByGuid(guid)?.toDomain()
+    override suspend fun getEpisode(guid: String): Episode? {
+        val entity = episodeDao.getByGuid(guid) ?: return null
+        val podcastArtwork = podcastDao.getById(entity.podcastId)?.artworkUrl
+        return entity.toDomain(podcastArtwork)
+    }
 
     override suspend fun updatePlaybackPosition(guid: String, positionMs: Long) =
         episodeDao.updatePosition(guid, positionMs)
@@ -58,13 +65,13 @@ class EpisodeRepositoryImpl @Inject constructor(
         fileSizeBytes = fileSizeBytes
     )
 
-    private fun EpisodeEntity.toDomain() = Episode(
+    private fun EpisodeEntity.toDomain(podcastArtworkFallback: String?) = Episode(
         guid = guid,
         podcastId = podcastId,
         title = title,
         description = description,
         audioUrl = audioUrl,
-        artworkUrl = artworkUrl,
+        artworkUrl = artworkUrl?.takeIf { it.isNotBlank() } ?: podcastArtworkFallback,
         publishedAt = publishedAt,
         durationSeconds = durationSeconds,
         fileSizeBytes = fileSizeBytes,
