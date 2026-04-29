@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +39,9 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -52,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.core.text.HtmlCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -60,6 +66,7 @@ import com.example.mypodcast.ui.components.LoadingIndicator
 import com.example.mypodcast.ui.components.PodcastEpisodeRow
 import com.example.mypodcast.ui.player.MiniPlayerBar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PodcastDetailScreen(
     podcastId: Long,
@@ -90,48 +97,64 @@ fun PodcastDetailScreen(
             }
             else -> {
                 val podcast = state.podcast ?: return@Scaffold
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
+                val pullState = rememberPullToRefreshState()
+                PullToRefreshBox(
+                    isRefreshing = state.isRefreshing,
+                    onRefresh = viewModel::refresh,
+                    state = pullState,
+                    modifier = Modifier.padding(padding),
+                    indicator = {
+                        PullToRefreshDefaults.Indicator(
+                            state = pullState,
+                            isRefreshing = state.isRefreshing,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .statusBarsPadding()
+                                .zIndex(1f)
+                        )
+                    }
                 ) {
-                    item {
-                        PodcastHero(
-                            artworkUrl = podcast.artworkUrl,
-                            title = podcast.title,
-                            artistName = podcast.artistName,
-                            description = podcast.description,
-                            isSubscribed = state.isSubscribed,
-                            onBack = onBack,
-                            onSubscribeToggle = { viewModel.toggleSubscription(podcastId) }
-                        )
+                    CompositionLocalProvider(LocalOverscrollFactory provides null) {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        item {
+                            PodcastHero(
+                                artworkUrl = podcast.artworkUrl,
+                                title = podcast.title,
+                                artistName = podcast.artistName,
+                                description = podcast.description,
+                                isSubscribed = state.isSubscribed,
+                                onBack = onBack,
+                                onSubscribeToggle = { viewModel.toggleSubscription(podcastId) }
+                            )
+                        }
+                        item {
+                            SubscribeBar(
+                                episodeCount = state.episodes.size,
+                                isSubscribed = state.isSubscribed,
+                                onSubscribeToggle = { viewModel.toggleSubscription(podcastId) }
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                            )
+                        }
+                        items(state.episodes, key = { it.guid }) { episode ->
+                            PodcastEpisodeRow(
+                                episode = episode,
+                                isDownloaded = episode.guid in state.downloadedGuids,
+                                downloadState = state.downloadStates[episode.guid],
+                                onPlayClick = {
+                                    viewModel.playEpisode(episode)
+                                    onEpisodePlay(episode.guid)
+                                },
+                                onDownloadClick = { viewModel.downloadEpisode(episode) },
+                                onCancelDownloadClick = { viewModel.cancelDownload(episode.guid) },
+                                onDeleteDownloadClick = { viewModel.deleteDownload(episode) }
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                            )
+                        }
                     }
-                    item {
-                        SubscribeBar(
-                            episodeCount = state.episodes.size,
-                            isSubscribed = state.isSubscribed,
-                            onSubscribeToggle = { viewModel.toggleSubscription(podcastId) }
-                        )
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                        )
-                    }
-                    items(state.episodes, key = { it.guid }) { episode ->
-                        PodcastEpisodeRow(
-                            episode = episode,
-                            isDownloaded = episode.guid in state.downloadedGuids,
-                            downloadState = state.downloadStates[episode.guid],
-                            onPlayClick = {
-                                viewModel.playEpisode(episode)
-                                onEpisodePlay(episode.guid)
-                            },
-                            onDownloadClick = { viewModel.downloadEpisode(episode) },
-                            onCancelDownloadClick = { viewModel.cancelDownload(episode.guid) },
-                            onDeleteDownloadClick = { viewModel.deleteDownload(episode) }
-                        )
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                        )
                     }
                 }
             }

@@ -28,6 +28,7 @@ data class PodcastDetailUiState(
     val episodes: List<Episode> = emptyList(),
     val isSubscribed: Boolean = false,
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val error: String? = null,
     val downloadStates: Map<String, DownloadState> = emptyMap(),
     val downloadedGuids: Set<String> = emptySet()
@@ -101,6 +102,24 @@ class PodcastDetailViewModel @Inject constructor(
             }.onFailure { err ->
                 _uiState.update { it.copy(isLoading = false, error = err.message) }
             }
+        }
+    }
+
+    fun refresh() {
+        val podcastId = loadedPodcastId ?: return
+        if (fetchJob?.isActive == true) return
+
+        _uiState.update { it.copy(isRefreshing = true, error = null) }
+        fetchJob = viewModelScope.launch {
+            runCatching {
+                val podcast = getPodcastDetail(podcastId)
+                getEpisodes.fetch(podcastId, podcast.feedUrl)
+                val refreshed = getPodcastDetail(podcastId)
+                _uiState.update { it.copy(podcast = refreshed) }
+            }.onFailure { err ->
+                _uiState.update { it.copy(error = err.message) }
+            }
+            _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 
