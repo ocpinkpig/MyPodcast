@@ -1,0 +1,87 @@
+package com.example.mypodcast.ui.player
+
+import com.example.mypodcast.domain.model.Episode
+import com.example.mypodcast.domain.model.PlayerState
+import com.example.mypodcast.domain.repository.PlayerRepository
+import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertFalse
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import org.junit.Test
+
+class PlayerViewModelTest {
+    @Test
+    fun playPause_playsPreviewEpisodeWithoutPausingCurrentEpisode() {
+        val currentEpisode = episode("current")
+        val previewEpisode = episode("preview")
+        val repository = FakePlayerRepository(
+            PlayerState(
+                episode = currentEpisode,
+                previewEpisode = previewEpisode,
+                isPlaying = true
+            )
+        )
+        val viewModel = PlayerViewModel(repository)
+
+        viewModel.playPause("preview")
+
+        assertEquals(previewEpisode, repository.playedEpisode)
+        assertFalse(repository.paused)
+    }
+
+    @Test
+    fun playPause_ignoresStalePreviewForCurrentEpisodeScreen() {
+        val currentEpisode = episode("current")
+        val previewEpisode = episode("preview")
+        val repository = FakePlayerRepository(
+            PlayerState(
+                episode = currentEpisode,
+                previewEpisode = previewEpisode,
+                isPlaying = true
+            )
+        )
+        val viewModel = PlayerViewModel(repository)
+
+        viewModel.playPause("current")
+
+        assertEquals(null, repository.playedEpisode)
+        assertEquals(true, repository.paused)
+    }
+
+    private fun episode(guid: String) = Episode(
+        guid = guid,
+        podcastId = 1L,
+        title = "Episode $guid",
+        description = null,
+        audioUrl = "https://example.com/$guid.mp3",
+        artworkUrl = null,
+        publishedAt = 0L,
+        durationSeconds = 60,
+        fileSizeBytes = 1_024L
+    )
+}
+
+private class FakePlayerRepository(initialState: PlayerState) : PlayerRepository {
+    override val playerState: StateFlow<PlayerState> = MutableStateFlow(initialState)
+    var playedEpisode: Episode? = null
+    var paused = false
+
+    override fun play(episode: Episode) {
+        playedEpisode = episode
+    }
+
+    override fun prepare(episode: Episode) = Unit
+
+    override fun pause() {
+        paused = true
+    }
+
+    override fun resume() = Unit
+    override fun seekTo(positionMs: Long) = Unit
+    override fun skipForward(seconds: Int) = Unit
+    override fun skipBack(seconds: Int) = Unit
+    override fun setPlaybackSpeed(speed: Float) = Unit
+    override fun setSleepTimer(minutes: Int) = Unit
+    override fun cancelSleepTimer() = Unit
+    override fun release() = Unit
+}

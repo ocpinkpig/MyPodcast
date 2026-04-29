@@ -14,8 +14,18 @@ class PlayerViewModel @Inject constructor(
 
     val playerState: StateFlow<PlayerState> = playerRepository.playerState
 
-    fun playPause() {
+    fun playPause(episodeGuid: String? = null) {
         val state = playerRepository.playerState.value
+        val previewEpisode = state.previewEpisode
+        if (
+            previewEpisode != null &&
+            previewEpisode.guid != state.episode?.guid &&
+            (episodeGuid == null || previewEpisode.guid == episodeGuid)
+        ) {
+            playerRepository.play(previewEpisode)
+            return
+        }
+
         if (state.isPlaying) playerRepository.pause() else playerRepository.resume()
     }
 

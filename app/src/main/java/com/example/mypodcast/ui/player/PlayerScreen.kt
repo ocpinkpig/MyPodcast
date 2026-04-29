@@ -80,6 +80,7 @@ fun PlayerScreen(
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val state by viewModel.playerState.collectAsStateWithLifecycle()
+    val displayState = state.asPlayerScreenState(episodeGuid)
     var showSpeedSheet by remember { mutableStateOf(false) }
     var showSleepTimerSheet by remember { mutableStateOf(false) }
 
@@ -101,10 +102,10 @@ fun PlayerScreen(
         }
     ) { padding ->
         PlayerPager(
-            state = state,
+            state = displayState,
             contentPadding = padding,
             onSeek = viewModel::seekTo,
-            onPlayPause = viewModel::playPause,
+            onPlayPause = { viewModel.playPause(episodeGuid) },
             onSkipBack = viewModel::skipBack,
             onSkipForward = viewModel::skipForward,
             onSpeedClick = { showSpeedSheet = true },
@@ -188,6 +189,22 @@ private fun PlayerPager(
                 .fillMaxWidth()
                 .padding(bottom = 12.dp)
         )
+    }
+}
+
+internal fun PlayerState.asPlayerScreenState(episodeGuid: String): PlayerState {
+    val preview = previewEpisode
+    return if (preview != null && preview.guid == episodeGuid && preview.guid != episode?.guid) {
+        copy(
+            episode = preview,
+            isPlaying = false,
+            isBuffering = false,
+            positionMs = preview.playbackPosition,
+            durationMs = preview.durationSeconds.takeIf { it > 0 }?.times(1000L) ?: 0L,
+            error = null
+        )
+    } else {
+        this
     }
 }
 

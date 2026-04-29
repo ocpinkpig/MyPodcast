@@ -1,7 +1,9 @@
 package com.example.mypodcast.media
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import androidx.core.content.ContextCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -25,7 +27,7 @@ import javax.inject.Singleton
 
 @Singleton
 class PlayerController @Inject constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
     private val sleepTimerManager: SleepTimerManager
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -83,10 +85,10 @@ class PlayerController @Inject constructor(
         // play/pause state (and position) when the user re-opens the same
         // episode from a list row.
         if (currentEpisode?.guid == episode.guid) {
-            _playerState.update { it.copy(episode = episode, error = null) }
+            _playerState.update { it.copy(episode = episode, previewEpisode = null, error = null) }
             return
         }
-        loadEpisode(episode, autoPlay = false)
+        _playerState.update { it.copy(previewEpisode = episode, error = null) }
     }
 
     private fun loadEpisode(episode: Episode, autoPlay: Boolean) {
@@ -104,12 +106,32 @@ class PlayerController @Inject constructor(
         exoPlayer.setMediaItem(mediaItem)
         if (episode.playbackPosition > 0L) exoPlayer.seekTo(episode.playbackPosition)
         exoPlayer.prepare()
-        if (autoPlay) exoPlayer.play() else exoPlayer.pause()
-        _playerState.update { it.copy(episode = episode, error = null) }
+        if (autoPlay) {
+            startPlaybackService()
+            exoPlayer.play()
+        } else {
+            exoPlayer.pause()
+        }
+        _playerState.update {
+            it.copy(
+                episode = episode,
+                previewEpisode = null,
+                positionMs = episode.playbackPosition,
+                durationMs = episode.durationSeconds.takeIf { seconds -> seconds > 0 }?.times(1000L) ?: 0L,
+                error = null
+            )
+        }
     }
 
     fun pause() = exoPlayer.pause()
-    fun resume() = exoPlayer.play()
+    fun resume() {
+        startPlaybackService()
+        if (exoPlayer.playbackState == Player.STATE_ENDED) {
+            exoPlayer.seekTo(0L)
+            _playerState.update { it.copy(positionMs = 0L, error = null) }
+        }
+        exoPlayer.play()
+    }
 
     fun seekTo(positionMs: Long) {
         exoPlayer.seekTo(positionMs)
@@ -150,5 +172,12 @@ class PlayerController @Inject constructor(
 
     private fun stopPositionUpdates() {
         positionJob?.cancel()
+    }
+
+    private fun startPlaybackService() {
+        ContextCompat.startForegroundService(
+            context,
+            Intent(context, PlaybackService::class.java)
+        )
     }
 }
