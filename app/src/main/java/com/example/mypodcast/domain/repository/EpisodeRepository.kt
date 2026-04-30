@@ -7,5 +7,5 @@ interface EpisodeRepository {
     suspend fun fetchEpisodesForPodcast(podcastId: Long, feedUrl: String): List<Episode>
     fun observeEpisodesForPodcast(podcastId: Long): Flow<List<Episode>>
     suspend fun getEpisode(guid: String): Episode?
-    suspend fun updatePlaybackPosition(guid: String, positionMs: Long)
+    suspend fun updateProgress(guid: String, positionMs: Long, isPlayed: Boolean)
 }

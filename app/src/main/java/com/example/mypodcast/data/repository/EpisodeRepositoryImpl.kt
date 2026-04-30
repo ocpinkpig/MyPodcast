@@ -20,8 +20,16 @@ class EpisodeRepositoryImpl @Inject constructor(
 
     override suspend fun fetchEpisodesForPodcast(podcastId: Long, feedUrl: String): List<Episode> {
         val feed = rssParser.parse(feedUrl)
-        val entities = feed.episodes.map { it.toEntity(podcastId) }
-        episodeDao.upsertAll(entities)
+        val parsed = feed.episodes.map { it.toEntity(podcastId) }
+
+        // Preserve any saved progress before upsert — RSS doesn't carry it.
+        val priorByGuid = episodeDao.getByGuids(parsed.map { it.guid }).associateBy { it.guid }
+        val merged = parsed.map { e ->
+            val prior = priorByGuid[e.guid]
+            if (prior == null) e
+            else e.copy(playbackPosition = prior.playbackPosition, isPlayed = prior.isPlayed)
+        }
+        episodeDao.upsertAll(merged)
 
         // Backfill the podcast's description from the RSS feed channel-level
         // <description> / <itunes:summary>. iTunes Search doesn't return one,
@@ -33,7 +41,7 @@ class EpisodeRepositoryImpl @Inject constructor(
         }
 
         val podcastArtwork = existingPodcast?.artworkUrl
-        return entities.map { it.toDomain(podcastArtwork) }
+        return merged.map { it.toDomain(podcastArtwork) }
     }
 
     override fun observeEpisodesForPodcast(podcastId: Long): Flow<List<Episode>> {
@@ -50,8 +58,8 @@ class EpisodeRepositoryImpl @Inject constructor(
         return entity.toDomain(podcastArtwork)
     }
 
-    override suspend fun updatePlaybackPosition(guid: String, positionMs: Long) =
-        episodeDao.updatePosition(guid, positionMs)
+    override suspend fun updateProgress(guid: String, positionMs: Long, isPlayed: Boolean) =
+        episodeDao.updateProgress(guid, positionMs, isPlayed)
 
     private fun RssEpisode.toEntity(podcastId: Long) = EpisodeEntity(
         guid = guid,
@@ -75,6 +83,7 @@ class EpisodeRepositoryImpl @Inject constructor(
         publishedAt = publishedAt,
         durationSeconds = durationSeconds,
         fileSizeBytes = fileSizeBytes,
-        playbackPosition = playbackPosition
+        playbackPosition = playbackPosition,
+        isPlayed = isPlayed
     )
 }

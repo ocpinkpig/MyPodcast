@@ -83,7 +83,8 @@ class LibraryRepositoryImpl @Inject constructor(
                             publishedAt = e.publishedAt,
                             durationSeconds = e.durationSeconds,
                             fileSizeBytes = e.fileSizeBytes,
-                            playbackPosition = e.playbackPosition
+                            playbackPosition = e.playbackPosition,
+                            isPlayed = e.isPlayed
                         )
                     }
                 }

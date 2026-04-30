@@ -15,11 +15,14 @@ interface EpisodeDao {
     suspend fun getByGuid(guid: String): EpisodeEntity?
 
     @Query("SELECT * FROM episodes WHERE guid IN (:guids)")
+    suspend fun getByGuids(guids: List<String>): List<EpisodeEntity>
+
+    @Query("SELECT * FROM episodes WHERE guid IN (:guids)")
     fun observeByGuids(guids: List<String>): Flow<List<EpisodeEntity>>
 
     @Upsert
     suspend fun upsertAll(episodes: List<EpisodeEntity>)
 
-    @Query("UPDATE episodes SET playbackPosition = :positionMs WHERE guid = :guid")
-    suspend fun updatePosition(guid: String, positionMs: Long)
+    @Query("UPDATE episodes SET playbackPosition = :positionMs, isPlayed = :isPlayed WHERE guid = :guid")
+    suspend fun updateProgress(guid: String, positionMs: Long, isPlayed: Boolean)
 }
