@@ -25,5 +25,6 @@ data class EpisodeEntity(
     val publishedAt: Long,
     val durationSeconds: Int,
     val fileSizeBytes: Long,
-    val playbackPosition: Long = 0L
+    val playbackPosition: Long = 0L,
+    val isPlayed: Boolean = false
 )

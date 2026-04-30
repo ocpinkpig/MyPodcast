@@ -3,6 +3,7 @@ package com.example.mypodcast.di
 import android.content.Context
 import androidx.room.Room
 import com.example.mypodcast.data.local.AppDatabase
+import com.example.mypodcast.data.local.MIGRATION_1_2
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -17,7 +18,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, "mypodcast.db").build()
+        Room.databaseBuilder(context, AppDatabase::class.java, "mypodcast.db")
+            .addMigrations(MIGRATION_1_2)
+            .build()
 
     @Provides
     fun providePodcastDao(db: AppDatabase) = db.podcastDao()

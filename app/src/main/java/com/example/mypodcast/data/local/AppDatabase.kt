@@ -18,7 +18,7 @@ import com.example.mypodcast.data.local.entity.SubscriptionEntity
         SubscriptionEntity::class,
         DownloadedEpisodeEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
