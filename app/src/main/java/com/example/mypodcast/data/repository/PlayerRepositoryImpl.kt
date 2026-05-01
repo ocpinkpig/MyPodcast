@@ -23,5 +23,6 @@ class PlayerRepositoryImpl @Inject constructor(
     override fun setPlaybackSpeed(speed: Float) = playerController.setPlaybackSpeed(speed)
     override fun setSleepTimer(minutes: Int) = playerController.setSleepTimer(minutes)
     override fun cancelSleepTimer() = playerController.cancelSleepTimer()
+    override fun setFavorite(guid: String, isFavorite: Boolean) = playerController.setFavorite(guid, isFavorite)
     override fun release() = playerController.release()
 }

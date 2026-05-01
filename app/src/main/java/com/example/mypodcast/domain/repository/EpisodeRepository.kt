@@ -8,4 +8,5 @@ interface EpisodeRepository {
     fun observeEpisodesForPodcast(podcastId: Long): Flow<List<Episode>>
     suspend fun getEpisode(guid: String): Episode?
     suspend fun updateProgress(guid: String, positionMs: Long, isPlayed: Boolean)
+    suspend fun updateFavorite(guid: String, isFavorite: Boolean)
 }

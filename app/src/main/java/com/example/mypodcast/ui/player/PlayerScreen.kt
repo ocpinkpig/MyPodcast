@@ -26,6 +26,8 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.MoreHoriz
@@ -55,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
@@ -109,7 +112,8 @@ fun PlayerScreen(
             onSkipBack = viewModel::skipBack,
             onSkipForward = viewModel::skipForward,
             onSpeedClick = { showSpeedSheet = true },
-            onSleepTimerClick = { showSleepTimerSheet = true }
+            onSleepTimerClick = { showSleepTimerSheet = true },
+            onFavoriteClick = { viewModel.toggleFavorite(episodeGuid) }
         )
     }
 
@@ -149,7 +153,8 @@ private fun PlayerPager(
     onSkipBack: () -> Unit,
     onSkipForward: () -> Unit,
     onSpeedClick: () -> Unit,
-    onSleepTimerClick: () -> Unit
+    onSleepTimerClick: () -> Unit,
+    onFavoriteClick: () -> Unit
 ) {
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
 
@@ -170,7 +175,8 @@ private fun PlayerPager(
                     onSkipBack = onSkipBack,
                     onSkipForward = onSkipForward,
                     onSpeedClick = onSpeedClick,
-                    onSleepTimerClick = onSleepTimerClick
+                    onSleepTimerClick = onSleepTimerClick,
+                    onFavoriteClick = onFavoriteClick
                 )
                 1 -> ShowNotesPage(
                     state = state,
@@ -216,7 +222,8 @@ private fun PlaybackPage(
     onSkipBack: () -> Unit,
     onSkipForward: () -> Unit,
     onSpeedClick: () -> Unit,
-    onSleepTimerClick: () -> Unit
+    onSleepTimerClick: () -> Unit,
+    onFavoriteClick: () -> Unit
 ) {
     val episode = state.episode
 
@@ -256,7 +263,10 @@ private fun PlaybackPage(
             PlayerStatusChips(
                 speed = state.speed,
                 sleepTimerRemainingMs = state.sleepTimerRemainingMs,
-                isDownloaded = episode?.audioUrl?.startsWith("/") == true
+                isDownloaded = episode?.audioUrl?.startsWith("/") == true,
+                isFavorite = episode?.isFavorite == true,
+                favoriteEnabled = episode != null,
+                onFavoriteClick = onFavoriteClick
             )
 
             if (state.error != null) {
@@ -320,7 +330,10 @@ private fun PlaybackPage(
 private fun PlayerStatusChips(
     speed: Float,
     sleepTimerRemainingMs: Long,
-    isDownloaded: Boolean
+    isDownloaded: Boolean,
+    isFavorite: Boolean,
+    favoriteEnabled: Boolean,
+    onFavoriteClick: () -> Unit
 ) {
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
@@ -341,6 +354,36 @@ private fun PlayerStatusChips(
             icon = Icons.Default.Timer,
             label = formatSleepTimerLabel(sleepTimerRemainingMs)
         )
+        FavoritePill(
+            isFavorite = isFavorite,
+            enabled = favoriteEnabled,
+            onClick = onFavoriteClick
+        )
+    }
+}
+
+@Composable
+private fun FavoritePill(
+    isFavorite: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = FavoriteRed,
+        modifier = Modifier.size(36.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = if (isFavorite) "Remove favorite" else "Add favorite",
+                tint = FavoriteRed,
+                modifier = Modifier.size(18.dp)
+            )
+        }
     }
 }
 
@@ -374,6 +417,8 @@ private fun StatusPill(
         }
     }
 }
+
+private val FavoriteRed = Color(0xFFE53935)
 
 @Composable
 private fun PlayerProgress(

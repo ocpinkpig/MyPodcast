@@ -183,6 +183,24 @@ class PlayerController @Inject constructor(
 
     fun cancelSleepTimer() = sleepTimerManager.cancel()
 
+    fun setFavorite(guid: String, isFavorite: Boolean) {
+        val updatedCurrent = currentEpisode
+            ?.takeIf { it.guid == guid }
+            ?.copy(isFavorite = isFavorite)
+        if (updatedCurrent != null) currentEpisode = updatedCurrent
+
+        _playerState.update { state ->
+            state.copy(
+                episode = state.episode?.let { if (it.guid == guid) it.copy(isFavorite = isFavorite) else it },
+                previewEpisode = state.previewEpisode?.let { if (it.guid == guid) it.copy(isFavorite = isFavorite) else it }
+            )
+        }
+
+        scope.launch(Dispatchers.IO) {
+            episodeRepository.get().updateFavorite(guid, isFavorite)
+        }
+    }
+
     fun release() {
         // Snapshot state synchronously before releasing ExoPlayer so the
         // IO coroutine reads a valid position even after exoPlayer.release().

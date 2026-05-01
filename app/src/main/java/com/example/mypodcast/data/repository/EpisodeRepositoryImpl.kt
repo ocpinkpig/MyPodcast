@@ -27,7 +27,11 @@ class EpisodeRepositoryImpl @Inject constructor(
         val merged = parsed.map { e ->
             val prior = priorByGuid[e.guid]
             if (prior == null) e
-            else e.copy(playbackPosition = prior.playbackPosition, isPlayed = prior.isPlayed)
+            else e.copy(
+                playbackPosition = prior.playbackPosition,
+                isPlayed = prior.isPlayed,
+                isFavorite = prior.isFavorite
+            )
         }
         episodeDao.upsertAll(merged)
 
@@ -61,6 +65,9 @@ class EpisodeRepositoryImpl @Inject constructor(
     override suspend fun updateProgress(guid: String, positionMs: Long, isPlayed: Boolean) =
         episodeDao.updateProgress(guid, positionMs, isPlayed)
 
+    override suspend fun updateFavorite(guid: String, isFavorite: Boolean) =
+        episodeDao.updateFavorite(guid, isFavorite)
+
     private fun RssEpisode.toEntity(podcastId: Long) = EpisodeEntity(
         guid = guid,
         podcastId = podcastId,
@@ -84,6 +91,7 @@ class EpisodeRepositoryImpl @Inject constructor(
         durationSeconds = durationSeconds,
         fileSizeBytes = fileSizeBytes,
         playbackPosition = playbackPosition,
-        isPlayed = isPlayed
+        isPlayed = isPlayed,
+        isFavorite = isFavorite
     )
 }

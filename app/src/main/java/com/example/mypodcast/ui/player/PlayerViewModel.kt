@@ -35,4 +35,15 @@ class PlayerViewModel @Inject constructor(
     fun setSpeed(speed: Float) = playerRepository.setPlaybackSpeed(speed)
     fun setSleepTimer(minutes: Int) = playerRepository.setSleepTimer(minutes)
     fun cancelSleepTimer() = playerRepository.cancelSleepTimer()
+
+    fun toggleFavorite(episodeGuid: String? = null) {
+        val state = playerRepository.playerState.value
+        val episode = state.previewEpisode
+            ?.takeIf { episodeGuid == null || it.guid == episodeGuid }
+            ?: state.episode
+                ?.takeIf { episodeGuid == null || it.guid == episodeGuid }
+            ?: return
+
+        playerRepository.setFavorite(episode.guid, !episode.isFavorite)
+    }
 }

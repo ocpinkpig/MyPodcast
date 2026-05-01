@@ -48,6 +48,30 @@ class PlayerViewModelTest {
         assertEquals(true, repository.paused)
     }
 
+    @Test
+    fun toggleFavorite_favoritesCurrentEpisode() {
+        val currentEpisode = episode("current", isFavorite = false)
+        val repository = FakePlayerRepository(PlayerState(episode = currentEpisode))
+        val viewModel = PlayerViewModel(repository)
+
+        viewModel.toggleFavorite()
+
+        assertEquals("current", repository.favoriteGuid)
+        assertEquals(true, repository.favoriteValue)
+    }
+
+    @Test
+    fun toggleFavorite_unfavoritesCurrentEpisode() {
+        val currentEpisode = episode("current", isFavorite = true)
+        val repository = FakePlayerRepository(PlayerState(episode = currentEpisode))
+        val viewModel = PlayerViewModel(repository)
+
+        viewModel.toggleFavorite()
+
+        assertEquals("current", repository.favoriteGuid)
+        assertEquals(false, repository.favoriteValue)
+    }
+
     private fun episode(guid: String) = Episode(
         guid = guid,
         podcastId = 1L,
@@ -59,12 +83,17 @@ class PlayerViewModelTest {
         durationSeconds = 60,
         fileSizeBytes = 1_024L
     )
+
+    private fun episode(guid: String, isFavorite: Boolean) =
+        episode(guid).copy(isFavorite = isFavorite)
 }
 
 private class FakePlayerRepository(initialState: PlayerState) : PlayerRepository {
     override val playerState: StateFlow<PlayerState> = MutableStateFlow(initialState)
     var playedEpisode: Episode? = null
     var paused = false
+    var favoriteGuid: String? = null
+    var favoriteValue: Boolean? = null
 
     override fun play(episode: Episode) {
         playedEpisode = episode
@@ -83,5 +112,9 @@ private class FakePlayerRepository(initialState: PlayerState) : PlayerRepository
     override fun setPlaybackSpeed(speed: Float) = Unit
     override fun setSleepTimer(minutes: Int) = Unit
     override fun cancelSleepTimer() = Unit
+    override fun setFavorite(guid: String, isFavorite: Boolean) {
+        favoriteGuid = guid
+        favoriteValue = isFavorite
+    }
     override fun release() = Unit
 }

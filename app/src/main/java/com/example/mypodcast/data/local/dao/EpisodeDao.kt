@@ -25,4 +25,7 @@ interface EpisodeDao {
 
     @Query("UPDATE episodes SET playbackPosition = :positionMs, isPlayed = :isPlayed WHERE guid = :guid")
     suspend fun updateProgress(guid: String, positionMs: Long, isPlayed: Boolean)
+
+    @Query("UPDATE episodes SET isFavorite = :isFavorite WHERE guid = :guid")
+    suspend fun updateFavorite(guid: String, isFavorite: Boolean)
 }

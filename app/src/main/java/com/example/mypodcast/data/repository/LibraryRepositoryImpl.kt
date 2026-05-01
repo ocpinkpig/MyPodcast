@@ -84,7 +84,8 @@ class LibraryRepositoryImpl @Inject constructor(
                             durationSeconds = e.durationSeconds,
                             fileSizeBytes = e.fileSizeBytes,
                             playbackPosition = e.playbackPosition,
-                            isPlayed = e.isPlayed
+                            isPlayed = e.isPlayed,
+                            isFavorite = e.isFavorite
                         )
                     }
                 }

@@ -16,5 +16,6 @@ interface PlayerRepository {
     fun setPlaybackSpeed(speed: Float)
     fun setSleepTimer(minutes: Int)
     fun cancelSleepTimer()
+    fun setFavorite(guid: String, isFavorite: Boolean)
     fun release()
 }

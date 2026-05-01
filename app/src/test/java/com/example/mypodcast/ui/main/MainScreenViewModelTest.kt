@@ -52,5 +52,6 @@ private class FakePlayerRepository(initialState: PlayerState) : PlayerRepository
   override fun setPlaybackSpeed(speed: Float) = Unit
   override fun setSleepTimer(minutes: Int) = Unit
   override fun cancelSleepTimer() = Unit
+  override fun setFavorite(guid: String, isFavorite: Boolean) = Unit
   override fun release() = Unit
 }
