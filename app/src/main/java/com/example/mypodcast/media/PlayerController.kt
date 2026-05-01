@@ -25,8 +25,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -180,12 +178,9 @@ class PlayerController @Inject constructor(
     fun cancelSleepTimer() = sleepTimerManager.cancel()
 
     fun release() {
-        // Block briefly so progress is persisted even when the process is
-        // about to die. NonCancellable so the surrounding scope tearing down
-        // doesn't drop the write.
-        runBlocking {
-            withContext(NonCancellable) { persistCurrentNow() }
-        }
+        // Fire-and-forget on NonCancellable so this write survives scope teardown
+        // without blocking the calling thread.
+        CoroutineScope(NonCancellable + Dispatchers.IO).launch { persistCurrentNow() }
         positionJob?.cancel()
         exoPlayer.release()
     }
@@ -223,6 +218,7 @@ class PlayerController @Inject constructor(
 
     private fun persistCurrent() {
         val episode = currentEpisode ?: return
+        if (episode.isPlayed) return  // persistEnded() already wrote the final state
         val positionMs = exoPlayer.currentPosition
         if (positionMs < MIN_PERSIST_POSITION_MS) return
         persistProgress(episode.guid, positionMs, episode.isPlayed)
