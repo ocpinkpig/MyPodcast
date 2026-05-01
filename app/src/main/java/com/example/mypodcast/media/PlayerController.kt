@@ -18,7 +18,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -144,7 +143,14 @@ class PlayerController @Inject constructor(
         startPlaybackService()
         if (exoPlayer.playbackState == Player.STATE_ENDED) {
             exoPlayer.seekTo(0L)
-            _playerState.update { it.copy(positionMs = 0L, error = null) }
+            val ep = currentEpisode
+            if (ep != null && ep.isPlayed) {
+                currentEpisode = ep.copy(isPlayed = false, playbackPosition = 0L)
+                _playerState.update { it.copy(episode = currentEpisode, positionMs = 0L, error = null) }
+                persistProgress(ep.guid, positionMs = 0L, isPlayed = false)
+            } else {
+                _playerState.update { it.copy(positionMs = 0L, error = null) }
+            }
         }
         exoPlayer.play()
     }
@@ -178,11 +184,17 @@ class PlayerController @Inject constructor(
     fun cancelSleepTimer() = sleepTimerManager.cancel()
 
     fun release() {
-        // Fire-and-forget on NonCancellable so this write survives scope teardown
-        // without blocking the calling thread.
-        CoroutineScope(NonCancellable + Dispatchers.IO).launch { persistCurrentNow() }
+        // Snapshot state synchronously before releasing ExoPlayer so the
+        // IO coroutine reads a valid position even after exoPlayer.release().
+        val episodeSnapshot = currentEpisode
+        val positionSnapshot = exoPlayer.currentPosition
         positionJob?.cancel()
         exoPlayer.release()
+        if (episodeSnapshot != null && !episodeSnapshot.isPlayed && positionSnapshot >= MIN_PERSIST_POSITION_MS) {
+            CoroutineScope(Dispatchers.IO).launch {
+                episodeRepository.get().updateProgress(episodeSnapshot.guid, positionSnapshot, episodeSnapshot.isPlayed)
+            }
+        }
     }
 
     private fun startPositionUpdates() {
@@ -222,13 +234,6 @@ class PlayerController @Inject constructor(
         val positionMs = exoPlayer.currentPosition
         if (positionMs < MIN_PERSIST_POSITION_MS) return
         persistProgress(episode.guid, positionMs, episode.isPlayed)
-    }
-
-    private suspend fun persistCurrentNow() {
-        val episode = currentEpisode ?: return
-        val positionMs = exoPlayer.currentPosition
-        if (positionMs < MIN_PERSIST_POSITION_MS) return
-        episodeRepository.get().updateProgress(episode.guid, positionMs, episode.isPlayed)
     }
 
     private fun persistEnded() {
