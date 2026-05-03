@@ -1,5 +1,10 @@
 package com.example.mypodcast.ui.player
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -51,6 +56,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,6 +81,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.example.mypodcast.domain.model.PlayerState
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -231,6 +238,15 @@ private fun PlaybackPage(
     onAddToQueueClick: () -> Unit
 ) {
     val episode = state.episode
+    var showQueueFeedback by remember { mutableStateOf(false) }
+    var queueFeedbackKey by remember { mutableStateOf(0) }
+
+    LaunchedEffect(queueFeedbackKey) {
+        if (queueFeedbackKey > 0) {
+            delay(1_500)
+            showQueueFeedback = false
+        }
+    }
 
     BoxWithConstraints(
         modifier = Modifier
@@ -272,8 +288,14 @@ private fun PlaybackPage(
                 isFavorite = episode?.isFavorite == true,
                 favoriteEnabled = episode != null,
                 onFavoriteClick = onFavoriteClick,
-                onAddToQueueClick = onAddToQueueClick
+                onAddToQueueClick = {
+                    onAddToQueueClick()
+                    showQueueFeedback = true
+                    queueFeedbackKey += 1
+                }
             )
+
+            QueueAddedFeedback(visible = showQueueFeedback)
 
             if (state.error != null) {
                 Text(
@@ -327,6 +349,45 @@ private fun PlaybackPage(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+private fun QueueAddedFeedback(visible: Boolean) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn() + slideInVertically { it / 2 },
+            exit = fadeOut() + slideOutVertically { it / 2 }
+        ) {
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "Added to queue",
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1
+                    )
+                }
+            }
         }
     }
 }

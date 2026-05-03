@@ -39,7 +39,6 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -139,24 +138,18 @@ fun PodcastDetailScreen(
                             )
                         }
                         items(state.episodes, key = { it.guid }) { episode ->
-                            Column {
-                                PodcastEpisodeRow(
-                                    episode = episode,
-                                    isDownloaded = episode.guid in state.downloadedGuids,
-                                    downloadState = state.downloadStates[episode.guid],
-                                    onPlayClick = {
-                                        viewModel.playEpisode(episode)
-                                        onEpisodePlay(episode.guid)
-                                    },
-                                    onDownloadClick = { viewModel.downloadEpisode(episode) },
-                                    onCancelDownloadClick = { viewModel.cancelDownload(episode.guid) },
-                                    onDeleteDownloadClick = { viewModel.deleteDownload(episode) }
-                                )
-                                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.End) {
-                                    TextButton(onClick = { viewModel.enqueueNextEpisode(episode) }) { Text("Play next") }
-                                    TextButton(onClick = { viewModel.enqueueEpisode(episode) }) { Text("Add to queue") }
-                                }
-                            }
+                            PodcastEpisodeRow(
+                                episode = episode,
+                                isDownloaded = episode.guid in state.downloadedGuids,
+                                downloadState = state.downloadStates[episode.guid],
+                                onPlayClick = {
+                                    viewModel.playEpisode(episode)
+                                    onEpisodePlay(episode.guid)
+                                },
+                                onDownloadClick = { viewModel.downloadEpisode(episode) },
+                                onCancelDownloadClick = { viewModel.cancelDownload(episode.guid) },
+                                onDeleteDownloadClick = { viewModel.deleteDownload(episode) }
+                            )
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                             )
