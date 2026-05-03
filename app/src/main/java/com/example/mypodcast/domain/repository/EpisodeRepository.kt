@@ -10,4 +10,6 @@ interface EpisodeRepository {
     suspend fun updateProgress(guid: String, positionMs: Long, isPlayed: Boolean)
     suspend fun updateFavorite(guid: String, isFavorite: Boolean)
     fun observeFavoriteEpisodes(): Flow<List<Episode>>
+    fun observeHistoryEpisodes(): Flow<List<Episode>>
+    suspend fun touchLastPlayed(guid: String, ts: Long)
 }

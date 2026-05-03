@@ -85,6 +85,7 @@ fun QueueScreen(
     val current = playerState.episode
     val queue = playerState.queue
     val favorites by viewModel.favoriteEpisodes.collectAsStateWithLifecycle()
+    val history by viewModel.historyEpisodes.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableStateOf(QueueTab.QUEUE) }
 
     Scaffold(
@@ -184,7 +185,28 @@ fun QueueScreen(
                     }
                 }
                 QueueTab.HISTORY -> {
-                    EmptyHistory(Modifier.weight(1f))
+                    if (history.isEmpty()) {
+                        EmptyHistory(Modifier.weight(1f))
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(bottom = 20.dp)
+                        ) {
+                            items(history, key = { "hist-${it.guid}" }) { episode ->
+                                QueueEpisodeRow(
+                                    episode = episode,
+                                    status = null,
+                                    onPlay = { viewModel.playEpisode(episode) },
+                                    onClick = {
+                                        viewModel.prepareEpisode(episode)
+                                        onEpisodeClick(episode.guid)
+                                    },
+                                    showDragHandle = false
+                                )
+                                HorizontalDivider(color = QueueDivider)
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -31,4 +31,10 @@ interface EpisodeDao {
 
     @Query("SELECT * FROM episodes WHERE isFavorite = 1 ORDER BY publishedAt DESC")
     fun observeFavorites(): Flow<List<EpisodeEntity>>
+
+    @Query("UPDATE episodes SET lastPlayedAt = :ts WHERE guid = :guid")
+    suspend fun touchLastPlayed(guid: String, ts: Long)
+
+    @Query("SELECT * FROM episodes WHERE lastPlayedAt > 0 ORDER BY lastPlayedAt DESC")
+    fun observeHistory(): Flow<List<EpisodeEntity>>
 }

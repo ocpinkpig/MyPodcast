@@ -21,7 +21,7 @@ import com.example.mypodcast.data.local.entity.QueueItemEntity
         DownloadedEpisodeEntity::class,
         QueueItemEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

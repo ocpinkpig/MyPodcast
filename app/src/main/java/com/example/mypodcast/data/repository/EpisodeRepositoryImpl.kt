@@ -73,7 +73,18 @@ class EpisodeRepositoryImpl @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun observeFavoriteEpisodes(): Flow<List<Episode>> =
-        episodeDao.observeFavorites().flatMapLatest { entities ->
+        episodeDao.observeFavorites().withPodcastArtwork()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observeHistoryEpisodes(): Flow<List<Episode>> =
+        episodeDao.observeHistory().withPodcastArtwork()
+
+    override suspend fun touchLastPlayed(guid: String, ts: Long) =
+        episodeDao.touchLastPlayed(guid, ts)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun Flow<List<EpisodeEntity>>.withPodcastArtwork(): Flow<List<Episode>> =
+        flatMapLatest { entities ->
             val podcastIds = entities.map { it.podcastId }.distinct()
             if (podcastIds.isEmpty()) {
                 flowOf(emptyList())

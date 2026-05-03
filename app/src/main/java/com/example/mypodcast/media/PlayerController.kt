@@ -116,6 +116,8 @@ class PlayerController @Inject constructor(
         persistCurrent()
 
         currentEpisode = episode
+        val now = System.currentTimeMillis()
+        scope.launch(Dispatchers.IO) { episodeRepository.get().touchLastPlayed(episode.guid, now) }
         val mediaItem = MediaItem.Builder()
             .setUri(episode.audioUrl)
             .setMediaId(episode.guid)

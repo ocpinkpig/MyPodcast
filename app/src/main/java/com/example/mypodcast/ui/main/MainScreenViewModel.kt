@@ -23,6 +23,10 @@ class MainScreenViewModel @Inject constructor(
         episodeRepository.observeFavoriteEpisodes()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val historyEpisodes: StateFlow<List<Episode>> =
+        episodeRepository.observeHistoryEpisodes()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     fun togglePlayPause() {
         if (playerState.value.isPlaying) playerRepository.pause()
         else playerRepository.resume()

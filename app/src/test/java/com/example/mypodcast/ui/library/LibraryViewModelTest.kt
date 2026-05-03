@@ -132,6 +132,8 @@ private class FakeEpisodeRepository(
     override suspend fun updateProgress(guid: String, positionMs: Long, isPlayed: Boolean) = Unit
     override suspend fun updateFavorite(guid: String, isFavorite: Boolean) = Unit
     override fun observeFavoriteEpisodes(): Flow<List<Episode>> = flowOf(emptyList())
+    override fun observeHistoryEpisodes(): Flow<List<Episode>> = flowOf(emptyList())
+    override suspend fun touchLastPlayed(guid: String, ts: Long) = Unit
 }
 
 private class FakePlayerRepository : PlayerRepository {

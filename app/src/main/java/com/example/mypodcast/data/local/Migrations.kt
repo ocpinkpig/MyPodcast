@@ -27,3 +27,9 @@ internal val MIGRATION_3_4: Migration = object : Migration(3, 4) {
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_queue_items_position ON queue_items(position)")
     }
 }
+
+internal val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE episodes ADD COLUMN lastPlayedAt INTEGER NOT NULL DEFAULT 0")
+    }
+}
