@@ -3,6 +3,7 @@ package com.example.mypodcast.ui.queue
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,11 +22,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -33,12 +35,19 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -129,17 +138,15 @@ fun QueueScreen(
                         QueueEpisodeRow(
                             episode = episode,
                             status = "Playing",
-                            onPlay = { viewModel.togglePlayPause() },
-                            onRemove = null
+                            onPlay = { viewModel.togglePlayPause() }
                         )
                         HorizontalDivider(color = QueueDivider)
                     }
                 }
 
                 items(queue, key = { it.guid }) { episode ->
-                    QueueEpisodeRow(
+                    SwipeableQueueRow(
                         episode = episode,
-                        status = null,
                         onPlay = { viewModel.skipToQueueItem(episode.guid) },
                         onRemove = { viewModel.removeFromQueue(episode.guid) }
                     )
@@ -185,7 +192,7 @@ private fun QueueTabs() {
                     Text(
                         text = label,
                         color = if (index == 0) QueuePurple else QueuePurple.copy(alpha = 0.72f),
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1
                     )
@@ -203,15 +210,106 @@ private fun QueueTabs() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableQueueRow(
+    episode: Episode,
+    onPlay: () -> Unit,
+    onRemove: () -> Unit
+) {
+    var pendingRemoval by remember { mutableStateOf(false) }
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.StartToEnd) {
+                pendingRemoval = true
+            }
+            false
+        }
+    )
+
+    LaunchedEffect(pendingRemoval) {
+        if (!pendingRemoval) {
+            dismissState.reset()
+        }
+    }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromEndToStart = false,
+        backgroundContent = { SwipeRemoveBackground() }
+    ) {
+        QueueEpisodeRow(
+            episode = episode,
+            status = null,
+            onPlay = onPlay,
+            modifier = Modifier.background(Color.Black)
+        )
+    }
+
+    if (pendingRemoval) {
+        AlertDialog(
+            onDismissRequest = { pendingRemoval = false },
+            containerColor = Color(0xFF1F1F1F),
+            titleContentColor = Color.White,
+            textContentColor = QueueSecondary,
+            title = { Text("Remove from queue?") },
+            text = {
+                Text("\"${episode.title}\" will be removed from your queue.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingRemoval = false
+                    onRemove()
+                }) {
+                    Text("Remove", color = QueuePurple, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRemoval = false }) {
+                    Text("Cancel", color = QueueSecondary)
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun SwipeRemoveBackground() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(96.dp)
+            .background(Color(0xFFB00020))
+            .padding(horizontal = 24.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = "Remove",
+                color = Color.White,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
 @Composable
 private fun QueueEpisodeRow(
     episode: Episode,
     status: String?,
     onPlay: () -> Unit,
-    onRemove: (() -> Unit)?
+    modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -242,11 +340,13 @@ private fun QueueEpisodeRow(
             )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            IconButton(
-                onClick = onPlay,
+            Box(
                 modifier = Modifier
                     .size(40.dp)
+                    .clip(CircleShape)
                     .border(BorderStroke(1.5.dp, QueuePurple.copy(alpha = 0.7f)), CircleShape)
+                    .clickable(onClick = onPlay),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.PlayArrow,
@@ -255,21 +355,13 @@ private fun QueueEpisodeRow(
                     modifier = Modifier.size(20.dp)
                 )
             }
-            if (onRemove != null) {
-                IconButton(
-                    onClick = onRemove,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Remove from queue",
-                        tint = QueueTertiary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            } else {
-                Spacer(Modifier.height(32.dp))
-            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = formatDuration(episode.durationSeconds).ifBlank { " " },
+                color = QueueSecondary,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1
+            )
         }
     }
 }
@@ -352,10 +444,9 @@ private fun EmptyQueue(modifier: Modifier = Modifier) {
 
 private fun metadataText(episode: Episode, status: String?): String {
     val date = formatPublishedDate(episode.publishedAt)
-    val duration = formatDuration(episode.durationSeconds)
     val played = if (episode.isPlayed) "Played" else status
 
-    return listOfNotNull(date, played, duration)
+    return listOfNotNull(date, played)
         .filter { it.isNotBlank() }
         .joinToString(" - ")
 }
