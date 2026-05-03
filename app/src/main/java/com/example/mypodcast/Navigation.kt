@@ -59,7 +59,10 @@ fun MainNavigation() {
                     onNavigate = { key -> backStack.add(key) },
                     contentWindowInsets = WindowInsets(0)
                 ) {
-                    QueueScreen(onBack = { backStack.navigateBackToHome() })
+                    QueueScreen(
+                        onBack = { backStack.navigateBackToHome() },
+                        onEpisodeClick = { guid -> backStack.add(PlayerNavKey(guid)) }
+                    )
                 }
             }
             entry<PodcastDetailNavKey> { key ->

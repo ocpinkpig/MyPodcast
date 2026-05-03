@@ -75,6 +75,7 @@ private val QueueTertiary = Color.White.copy(alpha = 0.46f)
 @Composable
 fun QueueScreen(
     onBack: () -> Unit,
+    onEpisodeClick: (String) -> Unit = {},
     viewModel: MainScreenViewModel = hiltViewModel()
 ) {
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
@@ -141,7 +142,8 @@ fun QueueScreen(
                                 QueueEpisodeRow(
                                     episode = episode,
                                     status = "Playing",
-                                    onPlay = { viewModel.togglePlayPause() }
+                                    onPlay = { viewModel.togglePlayPause() },
+                                    onClick = { onEpisodeClick(episode.guid) }
                                 )
                                 HorizontalDivider(color = QueueDivider)
                             }
@@ -151,7 +153,8 @@ fun QueueScreen(
                             SwipeableQueueRow(
                                 episode = episode,
                                 onPlay = { viewModel.skipToQueueItem(episode.guid) },
-                                onRemove = { viewModel.removeFromQueue(episode.guid) }
+                                onRemove = { viewModel.removeFromQueue(episode.guid) },
+                                onClick = { onEpisodeClick(episode.guid) }
                             )
                             HorizontalDivider(color = QueueDivider)
                         }
@@ -183,6 +186,7 @@ fun QueueScreen(
                                     episode = episode,
                                     status = null,
                                     onPlay = { viewModel.playEpisode(episode) },
+                                    onClick = { onEpisodeClick(episode.guid) },
                                     showDragHandle = false
                                 )
                                 HorizontalDivider(color = QueueDivider)
@@ -251,7 +255,8 @@ private fun QueueTabs(selected: QueueTab, onSelect: (QueueTab) -> Unit) {
 private fun SwipeableQueueRow(
     episode: Episode,
     onPlay: () -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    onClick: () -> Unit
 ) {
     var pendingRemoval by remember { mutableStateOf(false) }
     val dismissState = rememberSwipeToDismissBoxState(
@@ -278,6 +283,7 @@ private fun SwipeableQueueRow(
             episode = episode,
             status = null,
             onPlay = onPlay,
+            onClick = onClick,
             modifier = Modifier.background(Color.Black)
         )
     }
@@ -342,12 +348,14 @@ private fun QueueEpisodeRow(
     episode: Episode,
     status: String?,
     onPlay: () -> Unit,
+    onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     showDragHandle: Boolean = true
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
