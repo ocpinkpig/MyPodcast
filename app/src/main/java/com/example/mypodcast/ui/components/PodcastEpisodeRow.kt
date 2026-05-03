@@ -50,9 +50,11 @@ fun PodcastEpisodeRow(
     onDeleteDownloadClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isNew = remember(episode.publishedAt) {
+    val isNew = remember(episode.publishedAt, episode.playbackPosition, episode.isPlayed) {
         episode.publishedAt > 0 &&
-            (System.currentTimeMillis() - episode.publishedAt) < SEVEN_DAYS_MS
+            (System.currentTimeMillis() - episode.publishedAt) < SEVEN_DAYS_MS &&
+            episode.playbackPosition < ONE_MINUTE_MS &&
+            !episode.isPlayed
     }
 
     Row(
@@ -251,3 +253,4 @@ private fun formatFileSize(bytes: Long): String {
 }
 
 private const val SEVEN_DAYS_MS = 7L * 24 * 60 * 60 * 1000
+private const val ONE_MINUTE_MS = 60_000L
