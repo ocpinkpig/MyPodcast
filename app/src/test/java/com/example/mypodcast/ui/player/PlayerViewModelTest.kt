@@ -116,5 +116,11 @@ private class FakePlayerRepository(initialState: PlayerState) : PlayerRepository
         favoriteGuid = guid
         favoriteValue = isFavorite
     }
+    override fun enqueue(episode: Episode) = Unit
+    override fun enqueueNext(episode: Episode) = Unit
+    override fun removeFromQueue(guid: String) = Unit
+    override fun clearQueue() = Unit
+    override fun skipToQueueItem(guid: String) = Unit
+    override fun moveQueueItem(fromIndex: Int, toIndex: Int) = Unit
     override fun release() = Unit
 }

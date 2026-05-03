@@ -8,3 +8,5 @@ import kotlinx.serialization.Serializable
 @Serializable data class PodcastDetailNavKey(val podcastId: Long) : NavKey
 @Serializable data class PlayerNavKey(val episodeGuid: String) : NavKey
 @Serializable data object LibraryNavKey : NavKey
+
+@Serializable data object QueueNavKey : NavKey

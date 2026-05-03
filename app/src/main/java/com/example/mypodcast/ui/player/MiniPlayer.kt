@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +34,7 @@ fun MiniPlayer(
     state: PlayerState,
     onTap: () -> Unit,
     onPlayPauseClick: () -> Unit,
+    onQueueClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val episode = state.episode ?: return
@@ -71,6 +73,9 @@ fun MiniPlayer(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                }
+                IconButton(onClick = onQueueClick) {
+                    Icon(imageVector = Icons.Default.QueueMusic, contentDescription = "Open queue")
                 }
                 IconButton(onClick = onPlayPauseClick) {
                     Icon(

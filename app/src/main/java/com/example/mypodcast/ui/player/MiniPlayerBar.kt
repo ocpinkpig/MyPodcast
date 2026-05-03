@@ -18,6 +18,7 @@ import com.example.mypodcast.ui.main.MainScreenViewModel
 @Composable
 fun MiniPlayerBar(
     onOpenPlayer: (episodeGuid: String) -> Unit,
+    onOpenQueue: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: MainScreenViewModel = hiltViewModel()
 ) {
@@ -28,6 +29,7 @@ fun MiniPlayerBar(
         state = playerState,
         onTap = { onOpenPlayer(episode.guid) },
         onPlayPauseClick = { viewModel.togglePlayPause() },
+        onQueueClick = onOpenQueue,
         modifier = modifier
     )
 }

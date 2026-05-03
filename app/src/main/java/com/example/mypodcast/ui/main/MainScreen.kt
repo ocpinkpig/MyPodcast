@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -31,6 +32,7 @@ import androidx.navigation3.runtime.NavKey
 import com.example.mypodcast.HomeNavKey
 import com.example.mypodcast.LibraryNavKey
 import com.example.mypodcast.PlayerNavKey
+import com.example.mypodcast.QueueNavKey
 import com.example.mypodcast.SearchNavKey
 import com.example.mypodcast.ui.player.MiniPlayerBar
 
@@ -40,12 +42,12 @@ fun MainScreen(
     onNavigate: (NavKey) -> Unit,
     content: @Composable () -> Unit
 ) {
-    val currentRoot = backStack.firstOrNull { it is HomeNavKey || it is SearchNavKey || it is LibraryNavKey }
+    val currentRoot = backStack.firstOrNull { it is HomeNavKey || it is SearchNavKey || it is LibraryNavKey || it is QueueNavKey }
 
     Scaffold(
         bottomBar = {
             Column {
-                MiniPlayerBar(onOpenPlayer = { guid -> onNavigate(PlayerNavKey(guid)) })
+                MiniPlayerBar(onOpenPlayer = { guid -> onNavigate(PlayerNavKey(guid)) }, onOpenQueue = { onNavigate(QueueNavKey) })
                 CompactBottomNavigationBar(
                     items = listOf(
                         CompactBottomNavItem(
@@ -73,6 +75,15 @@ fun MainScreen(
                             onClick = {
                                 backStack.clear()
                                 backStack.add(LibraryNavKey)
+                            }
+                        ),
+                        CompactBottomNavItem(
+                            icon = Icons.Default.QueueMusic,
+                            contentDescription = "Queue",
+                            selected = currentRoot is QueueNavKey,
+                            onClick = {
+                                backStack.clear()
+                                backStack.add(QueueNavKey)
                             }
                         )
                     )

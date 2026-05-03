@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -17,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -110,15 +112,21 @@ fun LibraryScreen(
                 } else {
                     LazyColumn(Modifier.fillMaxSize()) {
                         items(state.downloads, key = { it.guid }) { episode ->
-                            EpisodeListItem(
-                                episode = episode,
-                                onPlayClick = {
-                                    viewModel.playEpisode(episode)
-                                    onEpisodePlay(episode.guid)
-                                },
-                                showDeleteIcon = true,
-                                onDeleteDownloadClick = { pendingDelete = episode }
-                            )
+                            Column {
+                                EpisodeListItem(
+                                    episode = episode,
+                                    onPlayClick = {
+                                        viewModel.playEpisode(episode)
+                                        onEpisodePlay(episode.guid)
+                                    },
+                                    showDeleteIcon = true,
+                                    onDeleteDownloadClick = { pendingDelete = episode }
+                                )
+                                Row(modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                    TextButton(onClick = { viewModel.enqueueNextEpisode(episode) }) { Text("Play next") }
+                                    TextButton(onClick = { viewModel.enqueueEpisode(episode) }) { Text("Add to queue") }
+                                }
+                            }
                             HorizontalDivider()
                         }
                     }

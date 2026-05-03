@@ -24,5 +24,11 @@ class PlayerRepositoryImpl @Inject constructor(
     override fun setSleepTimer(minutes: Int) = playerController.setSleepTimer(minutes)
     override fun cancelSleepTimer() = playerController.cancelSleepTimer()
     override fun setFavorite(guid: String, isFavorite: Boolean) = playerController.setFavorite(guid, isFavorite)
+    override fun enqueue(episode: Episode) = playerController.enqueue(episode)
+    override fun enqueueNext(episode: Episode) = playerController.enqueueNext(episode)
+    override fun removeFromQueue(guid: String) = playerController.removeFromQueue(guid)
+    override fun clearQueue() = playerController.clearQueue()
+    override fun skipToQueueItem(guid: String) = playerController.skipToQueueItem(guid)
+    override fun moveQueueItem(fromIndex: Int, toIndex: Int) = playerController.moveQueueItem(fromIndex, toIndex)
     override fun release() = playerController.release()
 }

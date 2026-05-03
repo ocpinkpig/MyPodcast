@@ -10,6 +10,8 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.example.mypodcast.data.local.dao.QueueDao
+import com.example.mypodcast.data.local.entity.QueueItemEntity
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.PlayerState
 import com.example.mypodcast.domain.repository.EpisodeRepository
@@ -31,7 +33,8 @@ import javax.inject.Singleton
 class PlayerController @Inject constructor(
     @ApplicationContext private val context: Context,
     private val sleepTimerManager: SleepTimerManager,
-    private val episodeRepository: Lazy<EpisodeRepository>
+    private val episodeRepository: Lazy<EpisodeRepository>,
+    private val queueDao: Lazy<QueueDao>
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -63,6 +66,7 @@ class PlayerController @Inject constructor(
                 if (state == Player.STATE_ENDED) {
                     stopPositionUpdates()
                     persistEnded()
+                    playNextInQueue()
                 }
             }
 
@@ -85,6 +89,10 @@ class PlayerController @Inject constructor(
             sleepTimerManager.remainingMs.collect { remaining ->
                 _playerState.update { it.copy(sleepTimerRemainingMs = remaining) }
             }
+        }
+
+        scope.launch(Dispatchers.IO) {
+            hydrateQueue()
         }
     }
 
@@ -183,6 +191,54 @@ class PlayerController @Inject constructor(
 
     fun cancelSleepTimer() = sleepTimerManager.cancel()
 
+
+    fun enqueue(episode: Episode) {
+        val queue = _playerState.value.queue.toMutableList()
+        queue.removeAll { it.guid == episode.guid }
+        queue.add(episode)
+        _playerState.update { it.copy(queue = queue) }
+        persistQueue(queue)
+    }
+
+    fun enqueueNext(episode: Episode) {
+        val queue = _playerState.value.queue.toMutableList()
+        queue.removeAll { it.guid == episode.guid }
+        queue.add(0, episode)
+        _playerState.update { it.copy(queue = queue) }
+        persistQueue(queue)
+    }
+
+    fun removeFromQueue(guid: String) {
+        val updated = _playerState.value.queue.filterNot { it.guid == guid }
+        _playerState.update { it.copy(queue = updated) }
+        persistQueue(updated)
+    }
+
+    fun clearQueue() {
+        _playerState.update { it.copy(queue = emptyList()) }
+        scope.launch(Dispatchers.IO) { queueDao.get().clear() }
+    }
+
+    fun skipToQueueItem(guid: String) {
+        val queue = _playerState.value.queue.toMutableList()
+        val index = queue.indexOfFirst { it.guid == guid }
+        if (index < 0) return
+        val episode = queue.removeAt(index)
+        _playerState.update { it.copy(queue = queue) }
+        persistQueue(queue)
+        loadEpisode(episode, autoPlay = true)
+    }
+
+
+    fun moveQueueItem(fromIndex: Int, toIndex: Int) {
+        val queue = _playerState.value.queue.toMutableList()
+        if (fromIndex !in queue.indices || toIndex !in queue.indices || fromIndex == toIndex) return
+        val item = queue.removeAt(fromIndex)
+        queue.add(toIndex, item)
+        _playerState.update { it.copy(queue = queue) }
+        persistQueue(queue)
+    }
+
     fun setFavorite(guid: String, isFavorite: Boolean) {
         val updatedCurrent = currentEpisode
             ?.takeIf { it.guid == guid }
@@ -259,6 +315,30 @@ class PlayerController @Inject constructor(
         currentEpisode = episode.copy(playbackPosition = 0L, isPlayed = true)
         _playerState.update { it.copy(episode = currentEpisode, positionMs = 0L) }
         persistProgress(episode.guid, positionMs = 0L, isPlayed = true)
+    }
+
+    private fun playNextInQueue() {
+        val queue = _playerState.value.queue.toMutableList()
+        val next = queue.firstOrNull() ?: return
+        queue.removeAt(0)
+        _playerState.update { it.copy(queue = queue) }
+        persistQueue(queue)
+        loadEpisode(next, autoPlay = true)
+    }
+
+    private suspend fun hydrateQueue() {
+        val ordered = queueDao.get().getQueueItemsOrdered()
+        val episodes = ordered.mapNotNull { item -> episodeRepository.get().getEpisode(item.episodeGuid) }
+        _playerState.update { it.copy(queue = episodes) }
+        if (episodes.size != ordered.size) {
+            persistQueue(episodes)
+        }
+    }
+
+    private fun persistQueue(queue: List<Episode>) {
+        scope.launch(Dispatchers.IO) {
+            queueDao.get().replaceOrdered(queue.map { it.guid })
+        }
     }
 
     private fun persistProgress(guid: String, positionMs: Long, isPlayed: Boolean) {

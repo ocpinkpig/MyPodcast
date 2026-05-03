@@ -68,6 +68,18 @@ class EpisodeRepositoryImpl @Inject constructor(
     override suspend fun updateFavorite(guid: String, isFavorite: Boolean) =
         episodeDao.updateFavorite(guid, isFavorite)
 
+    override fun observeFavorites(): Flow<List<Episode>> =
+        episodeDao.observeFavorites().combine(podcastDao.observeAll()) { entities, podcasts ->
+            val art = podcasts.associateBy({ it.id }, { it.artworkUrl })
+            entities.map { it.toDomain(art[it.podcastId]) }
+        }
+
+    override fun observePlayedHistory(): Flow<List<Episode>> =
+        episodeDao.observePlayedHistory().combine(podcastDao.observeAll()) { entities, podcasts ->
+            val art = podcasts.associateBy({ it.id }, { it.artworkUrl })
+            entities.map { it.toDomain(art[it.podcastId]) }
+        }
+
     private fun RssEpisode.toEntity(podcastId: Long) = EpisodeEntity(
         guid = guid,
         podcastId = podcastId,
