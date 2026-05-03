@@ -91,4 +91,5 @@ private class FakeEpisodeRepository : EpisodeRepository {
   override fun observeFavoriteEpisodes(): Flow<List<Episode>> = flowOf(emptyList())
   override fun observeHistoryEpisodes(): Flow<List<Episode>> = flowOf(emptyList())
   override suspend fun touchLastPlayed(guid: String, ts: Long) = Unit
+  override fun observeNewEpisodeCounts(threshold: Long): Flow<Map<Long, Int>> = flowOf(emptyMap())
 }

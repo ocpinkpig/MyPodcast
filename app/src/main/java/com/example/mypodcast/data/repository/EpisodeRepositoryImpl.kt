@@ -82,6 +82,11 @@ class EpisodeRepositoryImpl @Inject constructor(
     override suspend fun touchLastPlayed(guid: String, ts: Long) =
         episodeDao.touchLastPlayed(guid, ts)
 
+    override fun observeNewEpisodeCounts(threshold: Long): Flow<Map<Long, Int>> =
+        episodeDao.observeNewEpisodeCounts(threshold).map { rows ->
+            rows.associate { it.podcastId to it.count }
+        }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun Flow<List<EpisodeEntity>>.withPodcastArtwork(): Flow<List<Episode>> =
         flatMapLatest { entities ->

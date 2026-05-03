@@ -37,4 +37,9 @@ interface EpisodeDao {
 
     @Query("SELECT * FROM episodes WHERE lastPlayedAt > 0 ORDER BY lastPlayedAt DESC")
     fun observeHistory(): Flow<List<EpisodeEntity>>
+
+    @Query("SELECT podcastId, COUNT(*) AS count FROM episodes WHERE publishedAt >= :threshold GROUP BY podcastId")
+    fun observeNewEpisodeCounts(threshold: Long): Flow<List<NewEpisodeCountRow>>
 }
+
+data class NewEpisodeCountRow(val podcastId: Long, val count: Int)

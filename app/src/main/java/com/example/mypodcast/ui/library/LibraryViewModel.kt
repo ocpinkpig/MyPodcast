@@ -12,10 +12,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+private const val SEVEN_DAYS_MS = 7L * 24 * 60 * 60 * 1000
 
 enum class LibraryTab { SUBSCRIPTIONS, DOWNLOADS }
 
@@ -49,6 +50,12 @@ class LibraryViewModel @Inject constructor(
                 _uiState.update { it.copy(downloads = list) }
             }
         }
+        viewModelScope.launch {
+            val threshold = System.currentTimeMillis() - SEVEN_DAYS_MS
+            episodeRepository.observeNewEpisodeCounts(threshold).collect { counts ->
+                _uiState.update { it.copy(newEpisodeCounts = counts) }
+            }
+        }
     }
 
     fun selectTab(tab: LibraryTab) = _uiState.update { it.copy(selectedTab = tab) }
@@ -59,28 +66,15 @@ class LibraryViewModel @Inject constructor(
         val subscriptions = _uiState.value.subscriptions
         _uiState.update { it.copy(isRefreshingSubscriptions = true) }
         viewModelScope.launch {
-            val newCounts = subscriptions.mapNotNull { podcast ->
+            subscriptions.forEach { podcast ->
                 runCatching {
-                    val existingGuids = episodeRepository
-                        .observeEpisodesForPodcast(podcast.id)
-                        .first()
-                        .map { it.guid }
-                        .toSet()
-                    val refreshed = episodeRepository.fetchEpisodesForPodcast(
+                    episodeRepository.fetchEpisodesForPodcast(
                         podcastId = podcast.id,
                         feedUrl = podcast.feedUrl
                     )
-                    val newCount = refreshed.count { it.guid !in existingGuids }
-                    if (newCount > 0) podcast.id to newCount else null
-                }.getOrNull()
-            }.toMap()
-
-            _uiState.update {
-                it.copy(
-                    isRefreshingSubscriptions = false,
-                    newEpisodeCounts = newCounts
-                )
+                }
             }
+            _uiState.update { it.copy(isRefreshingSubscriptions = false) }
         }
     }
 

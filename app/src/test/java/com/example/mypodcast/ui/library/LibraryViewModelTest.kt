@@ -32,18 +32,13 @@ class LibraryViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun refreshSubscriptions_badgesPodcastWithNewEpisodeCount() = runTest {
+    fun newEpisodeCounts_areExposedFromRepositoryFlow() = runTest {
         val podcast = podcast(id = 1L)
         val libraryRepository = FakeLibraryRepository(listOf(podcast))
         val episodeRepository = FakeEpisodeRepository(
             existingEpisodes = mapOf(1L to listOf(episode("existing", 1L))),
-            fetchedEpisodes = mapOf(
-                1L to listOf(
-                    episode("new-a", 1L),
-                    episode("new-b", 1L),
-                    episode("existing", 1L)
-                )
-            )
+            fetchedEpisodes = emptyMap(),
+            newEpisodeCounts = mapOf(1L to 2)
         )
         val viewModel = LibraryViewModel(
             getLibrary = GetLibraryUseCase(libraryRepository),
@@ -53,11 +48,7 @@ class LibraryViewModelTest {
         )
         advanceUntilIdle()
 
-        viewModel.refreshSubscriptions()
-        advanceUntilIdle()
-
         assertEquals(mapOf(1L to 2), viewModel.uiState.value.newEpisodeCounts)
-        assertEquals(false, viewModel.uiState.value.isRefreshingSubscriptions)
     }
 
     private fun podcast(id: Long) = Podcast(
@@ -120,7 +111,8 @@ private class FakeLibraryRepository(
 
 private class FakeEpisodeRepository(
     private val existingEpisodes: Map<Long, List<Episode>>,
-    private val fetchedEpisodes: Map<Long, List<Episode>>
+    private val fetchedEpisodes: Map<Long, List<Episode>>,
+    private val newEpisodeCounts: Map<Long, Int> = emptyMap()
 ) : EpisodeRepository {
     override suspend fun fetchEpisodesForPodcast(podcastId: Long, feedUrl: String): List<Episode> =
         fetchedEpisodes[podcastId].orEmpty()
@@ -134,6 +126,8 @@ private class FakeEpisodeRepository(
     override fun observeFavoriteEpisodes(): Flow<List<Episode>> = flowOf(emptyList())
     override fun observeHistoryEpisodes(): Flow<List<Episode>> = flowOf(emptyList())
     override suspend fun touchLastPlayed(guid: String, ts: Long) = Unit
+    override fun observeNewEpisodeCounts(threshold: Long): Flow<Map<Long, Int>> =
+        flowOf(newEpisodeCounts)
 }
 
 private class FakePlayerRepository : PlayerRepository {

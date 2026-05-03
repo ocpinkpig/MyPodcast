@@ -12,4 +12,5 @@ interface EpisodeRepository {
     fun observeFavoriteEpisodes(): Flow<List<Episode>>
     fun observeHistoryEpisodes(): Flow<List<Episode>>
     suspend fun touchLastPlayed(guid: String, ts: Long)
+    fun observeNewEpisodeCounts(threshold: Long): Flow<Map<Long, Int>>
 }
