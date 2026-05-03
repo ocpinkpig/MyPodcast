@@ -72,6 +72,17 @@ class PlayerViewModelTest {
         assertEquals(false, repository.favoriteValue)
     }
 
+    @Test
+    fun addToQueue_enqueuesCurrentEpisode() {
+        val currentEpisode = episode("current")
+        val repository = FakePlayerRepository(PlayerState(episode = currentEpisode))
+        val viewModel = PlayerViewModel(repository)
+
+        viewModel.addToQueue()
+
+        assertEquals(currentEpisode, repository.enqueuedEpisode)
+    }
+
     private fun episode(guid: String) = Episode(
         guid = guid,
         podcastId = 1L,
@@ -94,6 +105,7 @@ private class FakePlayerRepository(initialState: PlayerState) : PlayerRepository
     var paused = false
     var favoriteGuid: String? = null
     var favoriteValue: Boolean? = null
+    var enqueuedEpisode: Episode? = null
 
     override fun play(episode: Episode) {
         playedEpisode = episode
@@ -116,7 +128,9 @@ private class FakePlayerRepository(initialState: PlayerState) : PlayerRepository
         favoriteGuid = guid
         favoriteValue = isFavorite
     }
-    override fun enqueue(episode: Episode) = Unit
+    override fun enqueue(episode: Episode) {
+        enqueuedEpisode = episode
+    }
     override fun enqueueNext(episode: Episode) = Unit
     override fun removeFromQueue(guid: String) = Unit
     override fun clearQueue() = Unit
