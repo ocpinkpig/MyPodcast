@@ -9,5 +9,6 @@ data class PlayerState(
     val speed: Float = 1.0f,
     val sleepTimerRemainingMs: Long = 0L,
     val isBuffering: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val queue: List<Episode> = emptyList()
 )

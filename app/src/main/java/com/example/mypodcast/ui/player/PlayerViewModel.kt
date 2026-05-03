@@ -1,6 +1,7 @@
 package com.example.mypodcast.ui.player
 
 import androidx.lifecycle.ViewModel
+import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.PlayerState
 import com.example.mypodcast.domain.repository.PlayerRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,13 +38,23 @@ class PlayerViewModel @Inject constructor(
     fun cancelSleepTimer() = playerRepository.cancelSleepTimer()
 
     fun toggleFavorite(episodeGuid: String? = null) {
-        val state = playerRepository.playerState.value
-        val episode = state.previewEpisode
-            ?.takeIf { episodeGuid == null || it.guid == episodeGuid }
-            ?: state.episode
-                ?.takeIf { episodeGuid == null || it.guid == episodeGuid }
+        val episode = selectedEpisode(episodeGuid)
             ?: return
 
         playerRepository.setFavorite(episode.guid, !episode.isFavorite)
+    }
+
+    fun addToQueue(episodeGuid: String? = null) {
+        val episode = selectedEpisode(episodeGuid) ?: return
+
+        playerRepository.enqueue(episode)
+    }
+
+    private fun selectedEpisode(episodeGuid: String?): Episode? {
+        val state = playerRepository.playerState.value
+        return state.previewEpisode
+            ?.takeIf { episodeGuid == null || it.guid == episodeGuid }
+            ?: state.episode
+                ?.takeIf { episodeGuid == null || it.guid == episodeGuid }
     }
 }

@@ -10,6 +10,7 @@ import com.example.mypodcast.ui.home.HomeScreen
 import com.example.mypodcast.ui.library.LibraryScreen
 import com.example.mypodcast.ui.main.MainScreen
 import com.example.mypodcast.ui.player.PlayerScreen
+import com.example.mypodcast.ui.queue.QueueScreen
 import com.example.mypodcast.ui.search.SearchScreen
 
 @Composable
@@ -51,6 +52,11 @@ fun MainNavigation() {
                     )
                 }
             }
+            entry<QueueNavKey> {
+                MainScreen(backStack = backStack, onNavigate = { key -> backStack.add(key) }) {
+                    QueueScreen()
+                }
+            }
             entry<PodcastDetailNavKey> { key ->
                 PodcastDetailScreen(
                     podcastId = key.podcastId,
@@ -69,6 +75,6 @@ fun MainNavigation() {
 }
 
 fun MutableList<NavKey>.navigateTo(key: NavKey) {
-    removeAll { it is HomeNavKey || it is SearchNavKey || it is LibraryNavKey }
+    removeAll { it is HomeNavKey || it is SearchNavKey || it is LibraryNavKey || it is QueueNavKey }
     add(0, key)
 }
