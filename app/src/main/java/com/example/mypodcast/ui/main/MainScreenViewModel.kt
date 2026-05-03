@@ -34,5 +34,6 @@ class MainScreenViewModel @Inject constructor(
     fun clearQueue() = playerRepository.clearQueue()
     fun skipToQueueItem(guid: String) = playerRepository.skipToQueueItem(guid)
     fun playEpisode(episode: Episode) = playerRepository.play(episode)
+    fun prepareEpisode(episode: Episode) = playerRepository.prepare(episode)
     fun unfavorite(guid: String) = playerRepository.setFavorite(guid, false)
 }

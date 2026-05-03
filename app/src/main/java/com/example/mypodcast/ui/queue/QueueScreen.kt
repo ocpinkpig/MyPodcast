@@ -151,7 +151,10 @@ fun QueueScreen(
                             onMove = viewModel::moveQueueItem,
                             onPlay = { guid -> viewModel.skipToQueueItem(guid) },
                             onRemove = { guid -> viewModel.removeFromQueue(guid) },
-                            onEpisodeClick = onEpisodeClick,
+                            onEpisodeClick = { episode ->
+                                viewModel.prepareEpisode(episode)
+                                onEpisodeClick(episode.guid)
+                            },
                             onClearQueue = viewModel::clearQueue
                         )
                     }
@@ -169,7 +172,10 @@ fun QueueScreen(
                                     episode = episode,
                                     status = null,
                                     onPlay = { viewModel.playEpisode(episode) },
-                                    onClick = { onEpisodeClick(episode.guid) },
+                                    onClick = {
+                                        viewModel.prepareEpisode(episode)
+                                        onEpisodeClick(episode.guid)
+                                    },
                                     showDragHandle = false
                                 )
                                 HorizontalDivider(color = QueueDivider)
@@ -239,7 +245,7 @@ private fun ReorderableQueueList(
     onMove: (Int, Int) -> Unit,
     onPlay: (String) -> Unit,
     onRemove: (String) -> Unit,
-    onEpisodeClick: (String) -> Unit,
+    onEpisodeClick: (Episode) -> Unit,
     onClearQueue: () -> Unit
 ) {
     val lazyListState = rememberLazyListState()
@@ -265,7 +271,7 @@ private fun ReorderableQueueList(
                     episode = episode,
                     onPlay = { onPlay(episode.guid) },
                     onRemove = { onRemove(episode.guid) },
-                    onClick = { onEpisodeClick(episode.guid) },
+                    onClick = { onEpisodeClick(episode) },
                     dragHandleModifier = Modifier.draggableHandle()
                 )
                 HorizontalDivider(color = QueueDivider)
