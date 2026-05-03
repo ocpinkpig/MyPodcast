@@ -29,5 +29,6 @@ class PlayerRepositoryImpl @Inject constructor(
     override fun removeFromQueue(guid: String) = playerController.removeFromQueue(guid)
     override fun clearQueue() = playerController.clearQueue()
     override fun skipToQueueItem(guid: String) = playerController.skipToQueueItem(guid)
+    override fun moveQueueItem(fromIndex: Int, toIndex: Int) = playerController.moveQueueItem(fromIndex, toIndex)
     override fun release() = playerController.release()
 }

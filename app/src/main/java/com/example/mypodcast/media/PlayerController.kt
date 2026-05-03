@@ -214,6 +214,15 @@ class PlayerController @Inject constructor(
         persistQueue(updated)
     }
 
+    fun moveQueueItem(fromIndex: Int, toIndex: Int) {
+        val queue = _playerState.value.queue.toMutableList()
+        if (fromIndex !in queue.indices || toIndex !in queue.indices || fromIndex == toIndex) return
+        val moved = queue.removeAt(fromIndex)
+        queue.add(toIndex, moved)
+        _playerState.update { it.copy(queue = queue) }
+        persistQueue(queue)
+    }
+
     fun clearQueue() {
         _playerState.update { it.copy(queue = emptyList()) }
         scope.launch(Dispatchers.IO) { queueDao.get().clear() }

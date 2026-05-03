@@ -22,5 +22,6 @@ interface PlayerRepository {
     fun removeFromQueue(guid: String)
     fun clearQueue()
     fun skipToQueueItem(guid: String)
+    fun moveQueueItem(fromIndex: Int, toIndex: Int)
     fun release()
 }

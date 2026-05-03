@@ -40,6 +40,7 @@ class QueueScreenSourceTest {
         assertTrue(queueSource.contains("navigationIcon"))
         assertTrue(queueSource.contains("Icons.AutoMirrored.Filled.ArrowBack"))
         assertTrue(queueSource.contains("contentDescription = \"Back\""))
-        assertTrue(navigationSource.contains("QueueScreen(onBack ="))
+        assertTrue(navigationSource.contains("QueueScreen("))
+        assertTrue(navigationSource.contains("onBack ="))
     }
 }

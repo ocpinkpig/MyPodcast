@@ -135,5 +135,6 @@ private class FakePlayerRepository(initialState: PlayerState) : PlayerRepository
     override fun removeFromQueue(guid: String) = Unit
     override fun clearQueue() = Unit
     override fun skipToQueueItem(guid: String) = Unit
+    override fun moveQueueItem(fromIndex: Int, toIndex: Int) = Unit
     override fun release() = Unit
 }

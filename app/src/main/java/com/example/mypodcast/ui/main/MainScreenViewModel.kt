@@ -29,6 +29,8 @@ class MainScreenViewModel @Inject constructor(
     }
 
     fun removeFromQueue(guid: String) = playerRepository.removeFromQueue(guid)
+    fun moveQueueItem(fromIndex: Int, toIndex: Int) =
+        playerRepository.moveQueueItem(fromIndex, toIndex)
     fun clearQueue() = playerRepository.clearQueue()
     fun skipToQueueItem(guid: String) = playerRepository.skipToQueueItem(guid)
     fun playEpisode(episode: Episode) = playerRepository.play(episode)

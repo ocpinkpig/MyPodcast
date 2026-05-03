@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -61,6 +62,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.ui.main.MainScreenViewModel
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -133,44 +136,24 @@ fun QueueScreen(
                         EmptyQueue(Modifier.weight(1f))
                         return@Column
                     }
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(bottom = 20.dp)
-                    ) {
+                    Column(modifier = Modifier.weight(1f)) {
                         current?.let { episode ->
-                            item(key = "current-${episode.guid}") {
-                                QueueEpisodeRow(
-                                    episode = episode,
-                                    status = "Playing",
-                                    onPlay = { viewModel.togglePlayPause() },
-                                    onClick = { onEpisodeClick(episode.guid) }
-                                )
-                                HorizontalDivider(color = QueueDivider)
-                            }
-                        }
-
-                        items(queue, key = { it.guid }) { episode ->
-                            SwipeableQueueRow(
+                            QueueEpisodeRow(
                                 episode = episode,
-                                onPlay = { viewModel.skipToQueueItem(episode.guid) },
-                                onRemove = { viewModel.removeFromQueue(episode.guid) },
+                                status = "Playing",
+                                onPlay = { viewModel.togglePlayPause() },
                                 onClick = { onEpisodeClick(episode.guid) }
                             )
                             HorizontalDivider(color = QueueDivider)
                         }
-
-                        if (queue.isNotEmpty()) {
-                            item {
-                                TextButton(
-                                    onClick = viewModel::clearQueue,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                                ) {
-                                    Text("Clear queue", color = QueuePurple, fontWeight = FontWeight.SemiBold)
-                                }
-                            }
-                        }
+                        ReorderableQueueList(
+                            queue = queue,
+                            onMove = viewModel::moveQueueItem,
+                            onPlay = { guid -> viewModel.skipToQueueItem(guid) },
+                            onRemove = { guid -> viewModel.removeFromQueue(guid) },
+                            onEpisodeClick = onEpisodeClick,
+                            onClearQueue = viewModel::clearQueue
+                        )
                     }
                 }
                 QueueTab.FAVORITES -> {
@@ -250,13 +233,68 @@ private fun QueueTabs(selected: QueueTab, onSelect: (QueueTab) -> Unit) {
     }
 }
 
+@Composable
+private fun ReorderableQueueList(
+    queue: List<Episode>,
+    onMove: (Int, Int) -> Unit,
+    onPlay: (String) -> Unit,
+    onRemove: (String) -> Unit,
+    onEpisodeClick: (String) -> Unit,
+    onClearQueue: () -> Unit
+) {
+    val lazyListState = rememberLazyListState()
+    var localQueue by remember { mutableStateOf(queue) }
+    LaunchedEffect(queue) { localQueue = queue }
+
+    val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        val mutable = localQueue.toMutableList()
+        if (from.index !in mutable.indices || to.index !in mutable.indices) return@rememberReorderableLazyListState
+        mutable.add(to.index, mutable.removeAt(from.index))
+        localQueue = mutable
+        onMove(from.index, to.index)
+    }
+
+    LazyColumn(
+        state = lazyListState,
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(bottom = 20.dp)
+    ) {
+        items(localQueue, key = { it.guid }) { episode ->
+            ReorderableItem(reorderableState, key = episode.guid) { _ ->
+                SwipeableQueueRow(
+                    episode = episode,
+                    onPlay = { onPlay(episode.guid) },
+                    onRemove = { onRemove(episode.guid) },
+                    onClick = { onEpisodeClick(episode.guid) },
+                    dragHandleModifier = Modifier.draggableHandle()
+                )
+                HorizontalDivider(color = QueueDivider)
+            }
+        }
+
+        if (localQueue.isNotEmpty()) {
+            item(key = "clear-queue") {
+                TextButton(
+                    onClick = onClearQueue,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    Text("Clear queue", color = QueuePurple, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SwipeableQueueRow(
     episode: Episode,
     onPlay: () -> Unit,
     onRemove: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    dragHandleModifier: Modifier = Modifier
 ) {
     var pendingRemoval by remember { mutableStateOf(false) }
     val dismissState = rememberSwipeToDismissBoxState(
@@ -284,7 +322,8 @@ private fun SwipeableQueueRow(
             status = null,
             onPlay = onPlay,
             onClick = onClick,
-            modifier = Modifier.background(Color.Black)
+            modifier = Modifier.background(Color.Black),
+            dragHandleModifier = dragHandleModifier
         )
     }
 
@@ -350,7 +389,8 @@ private fun QueueEpisodeRow(
     onPlay: () -> Unit,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
-    showDragHandle: Boolean = true
+    showDragHandle: Boolean = true,
+    dragHandleModifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
@@ -360,7 +400,7 @@ private fun QueueEpisodeRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (showDragHandle) {
-            DragHandle()
+            DragHandle(modifier = dragHandleModifier)
             Spacer(Modifier.width(8.dp))
         }
         Artwork(url = episode.artworkUrl)
@@ -414,8 +454,9 @@ private fun QueueEpisodeRow(
 }
 
 @Composable
-private fun DragHandle() {
+private fun DragHandle(modifier: Modifier = Modifier) {
     Column(
+        modifier = modifier.padding(horizontal = 4.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
