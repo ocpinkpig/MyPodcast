@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -113,7 +114,8 @@ fun PlayerScreen(
             onSkipForward = viewModel::skipForward,
             onSpeedClick = { showSpeedSheet = true },
             onSleepTimerClick = { showSleepTimerSheet = true },
-            onFavoriteClick = { viewModel.toggleFavorite(episodeGuid) }
+            onFavoriteClick = { viewModel.toggleFavorite(episodeGuid) },
+            onAddToQueueClick = { viewModel.addToQueue(episodeGuid) }
         )
     }
 
@@ -154,7 +156,8 @@ private fun PlayerPager(
     onSkipForward: () -> Unit,
     onSpeedClick: () -> Unit,
     onSleepTimerClick: () -> Unit,
-    onFavoriteClick: () -> Unit
+    onFavoriteClick: () -> Unit,
+    onAddToQueueClick: () -> Unit
 ) {
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
 
@@ -176,7 +179,8 @@ private fun PlayerPager(
                     onSkipForward = onSkipForward,
                     onSpeedClick = onSpeedClick,
                     onSleepTimerClick = onSleepTimerClick,
-                    onFavoriteClick = onFavoriteClick
+                    onFavoriteClick = onFavoriteClick,
+                    onAddToQueueClick = onAddToQueueClick
                 )
                 1 -> ShowNotesPage(
                     state = state,
@@ -223,7 +227,8 @@ private fun PlaybackPage(
     onSkipForward: () -> Unit,
     onSpeedClick: () -> Unit,
     onSleepTimerClick: () -> Unit,
-    onFavoriteClick: () -> Unit
+    onFavoriteClick: () -> Unit,
+    onAddToQueueClick: () -> Unit
 ) {
     val episode = state.episode
 
@@ -266,7 +271,8 @@ private fun PlaybackPage(
                 isDownloaded = episode?.audioUrl?.startsWith("/") == true,
                 isFavorite = episode?.isFavorite == true,
                 favoriteEnabled = episode != null,
-                onFavoriteClick = onFavoriteClick
+                onFavoriteClick = onFavoriteClick,
+                onAddToQueueClick = onAddToQueueClick
             )
 
             if (state.error != null) {
@@ -333,7 +339,8 @@ private fun PlayerStatusChips(
     isDownloaded: Boolean,
     isFavorite: Boolean,
     favoriteEnabled: Boolean,
-    onFavoriteClick: () -> Unit
+    onFavoriteClick: () -> Unit,
+    onAddToQueueClick: () -> Unit
 ) {
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
@@ -359,6 +366,10 @@ private fun PlayerStatusChips(
             enabled = favoriteEnabled,
             onClick = onFavoriteClick
         )
+        QueuePill(
+            enabled = favoriteEnabled,
+            onClick = onAddToQueueClick
+        )
     }
 }
 
@@ -381,6 +392,29 @@ private fun FavoritePill(
                 imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = if (isFavorite) "Remove favorite" else "Add favorite",
                 tint = FavoriteRed,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun QueuePill(
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.size(36.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                contentDescription = "Add to queue",
                 modifier = Modifier.size(18.dp)
             )
         }
