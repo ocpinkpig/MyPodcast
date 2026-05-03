@@ -1,6 +1,7 @@
 package com.example.mypodcast
 
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -53,8 +54,12 @@ fun MainNavigation() {
                 }
             }
             entry<QueueNavKey> {
-                MainScreen(backStack = backStack, onNavigate = { key -> backStack.add(key) }) {
-                    QueueScreen()
+                MainScreen(
+                    backStack = backStack,
+                    onNavigate = { key -> backStack.add(key) },
+                    contentWindowInsets = WindowInsets(0)
+                ) {
+                    QueueScreen(onBack = { backStack.navigateBackToHome() })
                 }
             }
             entry<PodcastDetailNavKey> { key ->
@@ -77,4 +82,13 @@ fun MainNavigation() {
 fun MutableList<NavKey>.navigateTo(key: NavKey) {
     removeAll { it is HomeNavKey || it is SearchNavKey || it is LibraryNavKey || it is QueueNavKey }
     add(0, key)
+}
+
+private fun MutableList<NavKey>.navigateBackToHome() {
+    if (size > 1) {
+        removeLastOrNull()
+    } else {
+        clear()
+        add(HomeNavKey)
+    }
 }

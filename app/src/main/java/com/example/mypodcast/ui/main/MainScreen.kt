@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -40,11 +41,13 @@ import com.example.mypodcast.ui.player.MiniPlayerBar
 fun MainScreen(
     backStack: MutableList<NavKey>,
     onNavigate: (NavKey) -> Unit,
+    contentWindowInsets: WindowInsets = ScaffoldDefaults.contentWindowInsets,
     content: @Composable () -> Unit
 ) {
     val currentRoot = backStack.firstOrNull { it is HomeNavKey || it is SearchNavKey || it is LibraryNavKey || it is QueueNavKey }
 
     Scaffold(
+        contentWindowInsets = contentWindowInsets,
         bottomBar = {
             Column {
                 MiniPlayerBar(onOpenPlayer = { guid -> onNavigate(PlayerNavKey(guid)) })

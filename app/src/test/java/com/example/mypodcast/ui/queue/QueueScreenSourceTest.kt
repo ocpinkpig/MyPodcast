@@ -30,4 +30,16 @@ class QueueScreenSourceTest {
         assertTrue(source.contains(".size(40.dp)"))
         assertTrue(source.contains("BorderStroke(1.5.dp"))
     }
+
+    @Test
+    fun queueTopBar_matchesPlayerNavigationShape() {
+        val queueSource = File("src/main/java/com/example/mypodcast/ui/queue/QueueScreen.kt").readText()
+        val navigationSource = File("src/main/java/com/example/mypodcast/Navigation.kt").readText()
+
+        assertTrue(queueSource.contains("onBack: () -> Unit"))
+        assertTrue(queueSource.contains("navigationIcon"))
+        assertTrue(queueSource.contains("Icons.AutoMirrored.Filled.ArrowBack"))
+        assertTrue(queueSource.contains("contentDescription = \"Back\""))
+        assertTrue(navigationSource.contains("QueueScreen(onBack ="))
+    }
 }

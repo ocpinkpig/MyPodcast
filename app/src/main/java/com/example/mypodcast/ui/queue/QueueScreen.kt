@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MoreVert
@@ -63,7 +64,10 @@ private val QueueTertiary = Color.White.copy(alpha = 0.46f)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QueueScreen(viewModel: MainScreenViewModel = hiltViewModel()) {
+fun QueueScreen(
+    onBack: () -> Unit,
+    viewModel: MainScreenViewModel = hiltViewModel()
+) {
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val current = playerState.episode
     val queue = playerState.queue
@@ -75,9 +79,14 @@ fun QueueScreen(viewModel: MainScreenViewModel = hiltViewModel()) {
                 title = {
                     Text(
                         text = "Queue",
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold
                     )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
                 },
                 actions = {
                     IconButton(onClick = { /* Search coming later. */ }) {
