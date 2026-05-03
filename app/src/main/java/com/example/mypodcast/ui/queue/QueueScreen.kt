@@ -80,6 +80,8 @@ fun QueueScreen(
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val current = playerState.episode
     val queue = playerState.queue
+    val favorites by viewModel.favoriteEpisodes.collectAsStateWithLifecycle()
+    var selectedTab by remember { mutableStateOf(QueueTab.QUEUE) }
 
     Scaffold(
         containerColor = Color.Black,
@@ -122,57 +124,89 @@ fun QueueScreen(
                 .background(Color.Black)
                 .padding(padding)
         ) {
-            QueueTabs()
+            QueueTabs(selected = selectedTab, onSelect = { selectedTab = it })
 
-            if (current == null && queue.isEmpty()) {
-                EmptyQueue(Modifier.weight(1f))
-                return@Column
-            }
-
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(bottom = 20.dp)
-            ) {
-                current?.let { episode ->
-                    item(key = "current-${episode.guid}") {
-                        QueueEpisodeRow(
-                            episode = episode,
-                            status = "Playing",
-                            onPlay = { viewModel.togglePlayPause() }
-                        )
-                        HorizontalDivider(color = QueueDivider)
+            when (selectedTab) {
+                QueueTab.QUEUE -> {
+                    if (current == null && queue.isEmpty()) {
+                        EmptyQueue(Modifier.weight(1f))
+                        return@Column
                     }
-                }
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(bottom = 20.dp)
+                    ) {
+                        current?.let { episode ->
+                            item(key = "current-${episode.guid}") {
+                                QueueEpisodeRow(
+                                    episode = episode,
+                                    status = "Playing",
+                                    onPlay = { viewModel.togglePlayPause() }
+                                )
+                                HorizontalDivider(color = QueueDivider)
+                            }
+                        }
 
-                items(queue, key = { it.guid }) { episode ->
-                    SwipeableQueueRow(
-                        episode = episode,
-                        onPlay = { viewModel.skipToQueueItem(episode.guid) },
-                        onRemove = { viewModel.removeFromQueue(episode.guid) }
-                    )
-                    HorizontalDivider(color = QueueDivider)
-                }
+                        items(queue, key = { it.guid }) { episode ->
+                            SwipeableQueueRow(
+                                episode = episode,
+                                onPlay = { viewModel.skipToQueueItem(episode.guid) },
+                                onRemove = { viewModel.removeFromQueue(episode.guid) }
+                            )
+                            HorizontalDivider(color = QueueDivider)
+                        }
 
-                if (queue.isNotEmpty()) {
-                    item {
-                        TextButton(
-                            onClick = viewModel::clearQueue,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp)
-                        ) {
-                            Text("Clear queue", color = QueuePurple, fontWeight = FontWeight.SemiBold)
+                        if (queue.isNotEmpty()) {
+                            item {
+                                TextButton(
+                                    onClick = viewModel::clearQueue,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                                ) {
+                                    Text("Clear queue", color = QueuePurple, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
                         }
                     }
+                }
+                QueueTab.FAVORITES -> {
+                    if (favorites.isEmpty()) {
+                        EmptyFavorites(Modifier.weight(1f))
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(bottom = 20.dp)
+                        ) {
+                            items(favorites, key = { "fav-${it.guid}" }) { episode ->
+                                QueueEpisodeRow(
+                                    episode = episode,
+                                    status = null,
+                                    onPlay = { viewModel.playEpisode(episode) },
+                                    showDragHandle = false
+                                )
+                                HorizontalDivider(color = QueueDivider)
+                            }
+                        }
+                    }
+                }
+                QueueTab.HISTORY -> {
+                    EmptyHistory(Modifier.weight(1f))
                 }
             }
         }
     }
 }
 
+private enum class QueueTab { QUEUE, FAVORITES, HISTORY }
+
 @Composable
-private fun QueueTabs() {
-    val tabs = listOf("QUEUE", "FAVORITES", "HISTORY")
+private fun QueueTabs(selected: QueueTab, onSelect: (QueueTab) -> Unit) {
+    val tabs = listOf(
+        "QUEUE" to QueueTab.QUEUE,
+        "FAVORITES" to QueueTab.FAVORITES,
+        "HISTORY" to QueueTab.HISTORY
+    )
 
     Column {
         Row(
@@ -181,17 +215,19 @@ private fun QueueTabs() {
                 .height(56.dp),
             verticalAlignment = Alignment.Bottom
         ) {
-            tabs.forEachIndexed { index, label ->
+            tabs.forEach { (label, tab) ->
+                val isSelected = tab == selected
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp),
+                        .height(56.dp)
+                        .clickable { onSelect(tab) },
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Bottom
                 ) {
                     Text(
                         text = label,
-                        color = if (index == 0) QueuePurple else QueuePurple.copy(alpha = 0.72f),
+                        color = if (isSelected) QueuePurple else QueuePurple.copy(alpha = 0.72f),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1
@@ -201,7 +237,7 @@ private fun QueueTabs() {
                         modifier = Modifier
                             .height(3.dp)
                             .fillMaxWidth()
-                            .background(if (index == 0) QueuePurple else Color.Transparent)
+                            .background(if (isSelected) QueuePurple else Color.Transparent)
                     )
                 }
             }
@@ -306,7 +342,8 @@ private fun QueueEpisodeRow(
     episode: Episode,
     status: String?,
     onPlay: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showDragHandle: Boolean = true
 ) {
     Row(
         modifier = modifier
@@ -314,8 +351,10 @@ private fun QueueEpisodeRow(
             .padding(horizontal = 12.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        DragHandle()
-        Spacer(Modifier.width(8.dp))
+        if (showDragHandle) {
+            DragHandle()
+            Spacer(Modifier.width(8.dp))
+        }
         Artwork(url = episode.artworkUrl)
         Spacer(Modifier.width(12.dp))
         Column(
@@ -419,6 +458,33 @@ private fun Artwork(url: String?) {
 
 @Composable
 private fun EmptyQueue(modifier: Modifier = Modifier) {
+    EmptyMessage(
+        modifier = modifier,
+        title = "Your queue is empty",
+        subtitle = "Episodes you add will appear here."
+    )
+}
+
+@Composable
+private fun EmptyFavorites(modifier: Modifier = Modifier) {
+    EmptyMessage(
+        modifier = modifier,
+        title = "No favorite episodes",
+        subtitle = "Tap the heart on an episode to favorite it."
+    )
+}
+
+@Composable
+private fun EmptyHistory(modifier: Modifier = Modifier) {
+    EmptyMessage(
+        modifier = modifier,
+        title = "No history yet",
+        subtitle = "Episodes you finish will appear here."
+    )
+}
+
+@Composable
+private fun EmptyMessage(modifier: Modifier, title: String, subtitle: String) {
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -427,14 +493,14 @@ private fun EmptyQueue(modifier: Modifier = Modifier) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "Your queue is empty",
+                text = title,
                 color = Color.White,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Episodes you add will appear here.",
+                text = subtitle,
                 color = QueueSecondary,
                 style = MaterialTheme.typography.bodyLarge
             )

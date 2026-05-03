@@ -7,8 +7,11 @@ import com.example.mypodcast.data.remote.rss.RssParser
 import com.example.mypodcast.data.remote.rss.model.RssEpisode
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.repository.EpisodeRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -67,6 +70,20 @@ class EpisodeRepositoryImpl @Inject constructor(
 
     override suspend fun updateFavorite(guid: String, isFavorite: Boolean) =
         episodeDao.updateFavorite(guid, isFavorite)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observeFavoriteEpisodes(): Flow<List<Episode>> =
+        episodeDao.observeFavorites().flatMapLatest { entities ->
+            val podcastIds = entities.map { it.podcastId }.distinct()
+            if (podcastIds.isEmpty()) {
+                flowOf(emptyList())
+            } else {
+                podcastDao.observeByIds(podcastIds).map { podcasts ->
+                    val artworkById = podcasts.associate { it.id to it.artworkUrl }
+                    entities.map { it.toDomain(artworkById[it.podcastId]) }
+                }
+            }
+        }
 
     private fun RssEpisode.toEntity(podcastId: Long) = EpisodeEntity(
         guid = guid,

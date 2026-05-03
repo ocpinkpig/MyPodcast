@@ -28,4 +28,7 @@ interface EpisodeDao {
 
     @Query("UPDATE episodes SET isFavorite = :isFavorite WHERE guid = :guid")
     suspend fun updateFavorite(guid: String, isFavorite: Boolean)
+
+    @Query("SELECT * FROM episodes WHERE isFavorite = 1 ORDER BY publishedAt DESC")
+    fun observeFavorites(): Flow<List<EpisodeEntity>>
 }
