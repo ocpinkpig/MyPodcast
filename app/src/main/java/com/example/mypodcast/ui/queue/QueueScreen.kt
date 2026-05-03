@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,6 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mypodcast.ui.main.MainScreenViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QueueScreen(viewModel: MainScreenViewModel = hiltViewModel()) {
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
