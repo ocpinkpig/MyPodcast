@@ -17,5 +17,10 @@ interface PlayerRepository {
     fun setSleepTimer(minutes: Int)
     fun cancelSleepTimer()
     fun setFavorite(guid: String, isFavorite: Boolean)
+    fun enqueue(episode: Episode)
+    fun enqueueNext(episode: Episode)
+    fun removeFromQueue(guid: String)
+    fun clearQueue()
+    fun skipToQueueItem(guid: String)
     fun release()
 }

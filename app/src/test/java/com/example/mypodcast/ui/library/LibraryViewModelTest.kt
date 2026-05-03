@@ -148,5 +148,10 @@ private class FakePlayerRepository : PlayerRepository {
     override fun setSleepTimer(minutes: Int) = Unit
     override fun cancelSleepTimer() = Unit
     override fun setFavorite(guid: String, isFavorite: Boolean) = Unit
+    override fun enqueue(episode: Episode) = Unit
+    override fun enqueueNext(episode: Episode) = Unit
+    override fun removeFromQueue(guid: String) = Unit
+    override fun clearQueue() = Unit
+    override fun skipToQueueItem(guid: String) = Unit
     override fun release() = Unit
 }

@@ -63,6 +63,7 @@ class PlayerController @Inject constructor(
                 if (state == Player.STATE_ENDED) {
                     stopPositionUpdates()
                     persistEnded()
+                    playNextInQueue()
                 }
             }
 
@@ -183,6 +184,38 @@ class PlayerController @Inject constructor(
 
     fun cancelSleepTimer() = sleepTimerManager.cancel()
 
+
+    fun enqueue(episode: Episode) {
+        val queue = _playerState.value.queue.toMutableList()
+        queue.removeAll { it.guid == episode.guid }
+        queue.add(episode)
+        _playerState.update { it.copy(queue = queue) }
+    }
+
+    fun enqueueNext(episode: Episode) {
+        val queue = _playerState.value.queue.toMutableList()
+        queue.removeAll { it.guid == episode.guid }
+        queue.add(0, episode)
+        _playerState.update { it.copy(queue = queue) }
+    }
+
+    fun removeFromQueue(guid: String) {
+        _playerState.update { state -> state.copy(queue = state.queue.filterNot { it.guid == guid }) }
+    }
+
+    fun clearQueue() {
+        _playerState.update { it.copy(queue = emptyList()) }
+    }
+
+    fun skipToQueueItem(guid: String) {
+        val queue = _playerState.value.queue.toMutableList()
+        val index = queue.indexOfFirst { it.guid == guid }
+        if (index < 0) return
+        val episode = queue.removeAt(index)
+        _playerState.update { it.copy(queue = queue) }
+        loadEpisode(episode, autoPlay = true)
+    }
+
     fun setFavorite(guid: String, isFavorite: Boolean) {
         val updatedCurrent = currentEpisode
             ?.takeIf { it.guid == guid }
@@ -259,6 +292,14 @@ class PlayerController @Inject constructor(
         currentEpisode = episode.copy(playbackPosition = 0L, isPlayed = true)
         _playerState.update { it.copy(episode = currentEpisode, positionMs = 0L) }
         persistProgress(episode.guid, positionMs = 0L, isPlayed = true)
+    }
+
+    private fun playNextInQueue() {
+        val queue = _playerState.value.queue.toMutableList()
+        val next = queue.firstOrNull() ?: return
+        queue.removeAt(0)
+        _playerState.update { it.copy(queue = queue) }
+        loadEpisode(next, autoPlay = true)
     }
 
     private fun persistProgress(guid: String, positionMs: Long, isPlayed: Boolean) {

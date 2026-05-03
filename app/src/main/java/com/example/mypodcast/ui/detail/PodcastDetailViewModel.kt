@@ -173,4 +173,6 @@ class PodcastDetailViewModel @Inject constructor(
      * The user kicks off playback from the PlayerScreen.
      */
     fun playEpisode(episode: Episode) = playerRepository.prepare(episode)
+    fun enqueueEpisode(episode: Episode) = playerRepository.enqueue(episode)
+    fun enqueueNextEpisode(episode: Episode) = playerRepository.enqueueNext(episode)
 }
