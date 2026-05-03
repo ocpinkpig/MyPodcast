@@ -17,4 +17,8 @@ class MainScreenViewModel @Inject constructor(
         if (playerState.value.isPlaying) playerRepository.pause()
         else playerRepository.resume()
     }
+
+    fun removeFromQueue(guid: String) = playerRepository.removeFromQueue(guid)
+    fun clearQueue() = playerRepository.clearQueue()
+    fun skipToQueueItem(guid: String) = playerRepository.skipToQueueItem(guid)
 }
