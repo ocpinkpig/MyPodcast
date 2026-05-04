@@ -35,7 +35,11 @@ interface EpisodeDao {
     @Query("UPDATE episodes SET lastPlayedAt = :ts WHERE guid = :guid")
     suspend fun touchLastPlayed(guid: String, ts: Long)
 
-    @Query("SELECT * FROM episodes WHERE lastPlayedAt > 0 ORDER BY lastPlayedAt DESC")
+    @Query(
+        "SELECT * FROM episodes " +
+            "WHERE lastPlayedAt > 0 OR playbackPosition > 0 OR isPlayed = 1 " +
+            "ORDER BY CASE WHEN lastPlayedAt > 0 THEN lastPlayedAt ELSE publishedAt END DESC"
+    )
     fun observeHistory(): Flow<List<EpisodeEntity>>
 
     @Query(
