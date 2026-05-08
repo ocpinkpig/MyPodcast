@@ -3,12 +3,15 @@ package com.example.mypodcast.media
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import com.example.mypodcast.MainActivity
 import com.example.mypodcast.R
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -29,7 +32,17 @@ class PlaybackService : MediaSessionService() {
             hasQueueItems = { playerController.hasQueueItems() },
             onNext = { playerController.playNextInQueue() }
         )
-        mediaSession = MediaSession.Builder(this, queueAwarePlayer).build()
+        val sessionActivityIntent = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        mediaSession = MediaSession.Builder(this, queueAwarePlayer)
+            .setSessionActivity(sessionActivityIntent)
+            .build()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
