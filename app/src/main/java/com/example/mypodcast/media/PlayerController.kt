@@ -15,6 +15,7 @@ import com.example.mypodcast.data.local.entity.QueueItemEntity
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.PlayerState
 import com.example.mypodcast.domain.repository.EpisodeRepository
+import com.example.mypodcast.domain.repository.PodcastRepository
 import dagger.Lazy
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -34,7 +35,8 @@ class PlayerController @Inject constructor(
     @ApplicationContext private val context: Context,
     private val sleepTimerManager: SleepTimerManager,
     private val episodeRepository: Lazy<EpisodeRepository>,
-    private val queueDao: Lazy<QueueDao>
+    private val queueDao: Lazy<QueueDao>,
+    private val podcastRepository: Lazy<PodcastRepository>
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
