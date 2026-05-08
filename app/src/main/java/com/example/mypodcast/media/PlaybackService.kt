@@ -1,17 +1,27 @@
 package com.example.mypodcast.media
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.example.mypodcast.MainActivity
 import com.example.mypodcast.R
+import com.google.common.util.concurrent.FutureCallback
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -22,9 +32,12 @@ class PlaybackService : MediaSessionService() {
     lateinit var playerController: PlayerController
 
     private var mediaSession: MediaSession? = null
+    private var cachedArtworkUri: Uri? = null
+    private var cachedArtwork: Bitmap? = null
 
     override fun onCreate() {
         super.onCreate()
+        ensureChannel()
         val queueAwarePlayer = QueueAwarePlayer(
             wrapped = playerController.exoPlayer,
             hasQueueItems = { playerController.hasQueueItems() },
@@ -42,7 +55,23 @@ class PlaybackService : MediaSessionService() {
             .setSessionActivity(sessionActivityIntent)
             .build()
         mediaSession = session
-        startAsForegroundMediaService(session)
+
+        startForegroundWithNotification(session, artwork = null)
+        loadArtworkAndUpdate(session)
+
+        session.player.addListener(object : Player.Listener {
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                loadArtworkAndUpdate(session)
+            }
+
+            override fun onMediaMetadataChanged(metadata: MediaMetadata) {
+                loadArtworkAndUpdate(session)
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                updateNotification(session, cachedArtwork)
+            }
+        })
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
@@ -53,22 +82,60 @@ class PlaybackService : MediaSessionService() {
         super.onDestroy()
     }
 
-    private fun startAsForegroundMediaService(session: MediaSession) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val nm = getSystemService(NotificationManager::class.java)
-            if (nm.getNotificationChannel(PLAYBACK_CHANNEL_ID) == null) {
-                nm.createNotificationChannel(
-                    NotificationChannel(
-                        PLAYBACK_CHANNEL_ID,
-                        "Playback",
-                        NotificationManager.IMPORTANCE_LOW
-                    )
-                )
-            }
+    private fun loadArtworkAndUpdate(session: MediaSession) {
+        val uri = session.player.mediaMetadata.artworkUri
+        if (uri == null) {
+            cachedArtworkUri = null
+            cachedArtwork = null
+            updateNotification(session, artwork = null)
+            return
         }
-        val notification = NotificationCompat.Builder(this, PLAYBACK_CHANNEL_ID)
+        if (uri == cachedArtworkUri && cachedArtwork != null) {
+            updateNotification(session, cachedArtwork)
+            return
+        }
+        cachedArtworkUri = uri
+        Futures.addCallback(
+            session.bitmapLoader.loadBitmap(uri),
+            object : FutureCallback<Bitmap> {
+                override fun onSuccess(result: Bitmap?) {
+                    if (uri != cachedArtworkUri) return
+                    cachedArtwork = result
+                    updateNotification(session, result)
+                }
+
+                override fun onFailure(t: Throwable) {
+                    // Leave the placeholder; nothing else to do.
+                }
+            },
+            MoreExecutors.directExecutor()
+        )
+    }
+
+    private fun startForegroundWithNotification(session: MediaSession, artwork: Bitmap?) {
+        ServiceCompat.startForeground(
+            this,
+            PLAYBACK_NOTIFICATION_ID,
+            buildNotification(session, artwork),
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+        )
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun updateNotification(session: MediaSession, artwork: Bitmap?) {
+        NotificationManagerCompat.from(this)
+            .notify(PLAYBACK_NOTIFICATION_ID, buildNotification(session, artwork))
+    }
+
+    private fun buildNotification(session: MediaSession, artwork: Bitmap?): android.app.Notification {
+        val metadata = session.player.mediaMetadata
+        val title = metadata.title?.toString().orEmpty().ifEmpty { getString(R.string.app_name) }
+        val text = metadata.artist?.toString().orEmpty()
+        return NotificationCompat.Builder(this, PLAYBACK_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("MyPodcast")
+            .setContentTitle(title)
+            .setContentText(text)
+            .setLargeIcon(artwork)
             .setOngoing(true)
             .setSilent(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -77,18 +144,25 @@ class PlaybackService : MediaSessionService() {
                     .setMediaSession(session.sessionCompatToken)
             )
             .build()
-        ServiceCompat.startForeground(
-            this,
-            PLAYBACK_NOTIFICATION_ID,
-            notification,
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-        )
+    }
+
+    private fun ensureChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val nm = getSystemService(NotificationManager::class.java)
+        if (nm.getNotificationChannel(PLAYBACK_CHANNEL_ID) == null) {
+            nm.createNotificationChannel(
+                NotificationChannel(
+                    PLAYBACK_CHANNEL_ID,
+                    "Playback",
+                    NotificationManager.IMPORTANCE_LOW
+                )
+            )
+        }
     }
 
     private companion object {
         const val PLAYBACK_CHANNEL_ID = "playback"
-        // Matches DefaultMediaNotificationProvider.DEFAULT_NOTIFICATION_ID so
-        // Media3's notification, when produced, replaces this placeholder.
+        // Matches DefaultMediaNotificationProvider.DEFAULT_NOTIFICATION_ID.
         const val PLAYBACK_NOTIFICATION_ID = 1001
     }
 }
