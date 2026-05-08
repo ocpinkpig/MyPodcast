@@ -15,6 +15,7 @@ import com.example.mypodcast.data.local.entity.QueueItemEntity
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.PlayerState
 import com.example.mypodcast.domain.repository.EpisodeRepository
+import com.example.mypodcast.domain.repository.PodcastRepository
 import dagger.Lazy
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -24,6 +25,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -34,7 +36,8 @@ class PlayerController @Inject constructor(
     @ApplicationContext private val context: Context,
     private val sleepTimerManager: SleepTimerManager,
     private val episodeRepository: Lazy<EpisodeRepository>,
-    private val queueDao: Lazy<QueueDao>
+    private val queueDao: Lazy<QueueDao>,
+    private val podcastRepository: Lazy<PodcastRepository>
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -46,6 +49,8 @@ class PlayerController @Inject constructor(
                 .build(),
             true
         )
+        .setSeekBackIncrementMs(30_000L)
+        .setSeekForwardIncrementMs(30_000L)
         .build()
 
     private val _playerState = MutableStateFlow(PlayerState())
@@ -118,17 +123,9 @@ class PlayerController @Inject constructor(
         currentEpisode = episode
         val now = System.currentTimeMillis()
         scope.launch(Dispatchers.IO) { episodeRepository.get().touchLastPlayed(episode.guid, now) }
-        val mediaItem = MediaItem.Builder()
-            .setUri(episode.audioUrl)
-            .setMediaId(episode.guid)
-            .setMediaMetadata(
-                MediaMetadata.Builder()
-                    .setTitle(episode.title)
-                    .setArtworkUri(episode.artworkUrl?.let { Uri.parse(it) })
-                    .build()
-            )
-            .build()
+        val mediaItem = buildMediaItem(episode, podcastTitle = null)
         exoPlayer.setMediaItem(mediaItem)
+        loadPodcastTitleIntoMetadata(episode)
         if (episode.playbackPosition > 0L) exoPlayer.seekTo(episode.playbackPosition)
         exoPlayer.prepare()
         if (autoPlay) {
@@ -145,6 +142,32 @@ class PlayerController @Inject constructor(
                 durationMs = episode.durationSeconds.takeIf { seconds -> seconds > 0 }?.times(1000L) ?: 0L,
                 error = null
             )
+        }
+    }
+
+    private fun buildMediaItem(episode: Episode, podcastTitle: String?): MediaItem =
+        MediaItem.Builder()
+            .setUri(episode.audioUrl)
+            .setMediaId(episode.guid)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(episode.title)
+                    .apply { if (!podcastTitle.isNullOrBlank()) setArtist(podcastTitle) }
+                    .setArtworkUri(episode.artworkUrl?.let { Uri.parse(it) })
+                    .build()
+            )
+            .build()
+
+    private fun loadPodcastTitleIntoMetadata(episode: Episode) {
+        scope.launch {
+            val podcast = podcastRepository.get()
+                .observePodcast(episode.podcastId)
+                .firstOrNull { it != null }
+                ?: return@launch
+            // Bail if the user has moved on to a different episode in the meantime.
+            if (currentEpisode?.guid != episode.guid) return@launch
+            val updated = buildMediaItem(episode, podcastTitle = podcast.title)
+            exoPlayer.replaceMediaItem(0, updated)
         }
     }
 
@@ -258,6 +281,8 @@ class PlayerController @Inject constructor(
         }
     }
 
+    fun hasQueueItems(): Boolean = _playerState.value.queue.isNotEmpty()
+
     fun release() {
         // Snapshot state synchronously before releasing ExoPlayer so the
         // IO coroutine reads a valid position even after exoPlayer.release().
@@ -318,7 +343,7 @@ class PlayerController @Inject constructor(
         persistProgress(episode.guid, positionMs = 0L, isPlayed = true)
     }
 
-    private fun playNextInQueue() {
+    internal fun playNextInQueue() {
         val queue = _playerState.value.queue.toMutableList()
         val next = queue.firstOrNull() ?: return
         queue.removeAt(0)

@@ -39,6 +39,11 @@ android {
         excludes += "/META-INF/{AL2.0,LGPL2.1}"
       }
     }
+
+    testOptions {
+      unitTests.isReturnDefaultValues = true
+      unitTests.isIncludeAndroidResources = true
+    }
 }
 
 kotlin {
@@ -73,6 +78,8 @@ dependencies {
   // Local tests: jUnit, coroutines, Android runner
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
+  testImplementation("androidx.media3:media3-test-utils:1.5.1")
+  testImplementation("org.robolectric:robolectric:4.13")
 
   // Instrumented tests: jUnit rules and runners
   androidTestImplementation(libs.androidx.test.core)
@@ -94,6 +101,7 @@ dependencies {
   implementation(libs.media3.exoplayer)
   implementation(libs.media3.session)
   implementation(libs.media3.ui)
+  implementation("androidx.media:media:1.7.0")
 
   // Room
   implementation(libs.room.runtime)
