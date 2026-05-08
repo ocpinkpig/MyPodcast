@@ -101,6 +101,7 @@ dependencies {
   implementation(libs.media3.exoplayer)
   implementation(libs.media3.session)
   implementation(libs.media3.ui)
+  implementation("androidx.media:media:1.7.0")
 
   // Room
   implementation(libs.room.runtime)

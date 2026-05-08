@@ -3,6 +3,7 @@ package com.example.mypodcast.media
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.core.content.ContextCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -319,7 +320,10 @@ class PlayerController @Inject constructor(
     }
 
     private fun startPlaybackService() {
-        context.startService(Intent(context, PlaybackService::class.java))
+        ContextCompat.startForegroundService(
+            context,
+            Intent(context, PlaybackService::class.java)
+        )
     }
 
     private fun persistCurrent() {
