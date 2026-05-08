@@ -24,7 +24,12 @@ class PlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         startAsForegroundService()
-        mediaSession = MediaSession.Builder(this, playerController.exoPlayer).build()
+        val queueAwarePlayer = QueueAwarePlayer(
+            wrapped = playerController.exoPlayer,
+            hasQueueItems = { playerController.hasQueueItems() },
+            onNext = { playerController.playNextInQueue() }
+        )
+        mediaSession = MediaSession.Builder(this, queueAwarePlayer).build()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
