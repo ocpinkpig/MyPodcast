@@ -74,6 +74,18 @@ class PlaybackService : MediaSessionService() {
         })
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_REWIND -> mediaSession?.player?.seekBack()
+            ACTION_FAST_FORWARD -> mediaSession?.player?.seekForward()
+            ACTION_PLAY_PAUSE -> mediaSession?.player?.let { p ->
+                if (p.isPlaying) p.pause() else p.play()
+            }
+            ACTION_NEXT -> mediaSession?.player?.seekToNextMediaItem()
+        }
+        return super.onStartCommand(intent, flags, startId)
+    }
+
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onDestroy() {
@@ -131,7 +143,33 @@ class PlaybackService : MediaSessionService() {
         val metadata = session.player.mediaMetadata
         val title = metadata.title?.toString().orEmpty().ifEmpty { getString(R.string.app_name) }
         val text = metadata.artist?.toString().orEmpty()
-        return NotificationCompat.Builder(this, PLAYBACK_CHANNEL_ID)
+        val isPlaying = session.player.isPlaying
+
+        val rewindAction = NotificationCompat.Action(
+            androidx.media3.session.R.drawable.media3_icon_skip_back_30,
+            "Rewind 30s",
+            commandPendingIntent(ACTION_REWIND, REQUEST_REWIND)
+        )
+        val playPauseAction = NotificationCompat.Action(
+            if (isPlaying) androidx.media3.session.R.drawable.media3_icon_pause
+            else androidx.media3.session.R.drawable.media3_icon_play,
+            if (isPlaying) "Pause" else "Play",
+            commandPendingIntent(ACTION_PLAY_PAUSE, REQUEST_PLAY_PAUSE)
+        )
+        val forwardAction = NotificationCompat.Action(
+            androidx.media3.session.R.drawable.media3_icon_skip_forward_30,
+            "Forward 30s",
+            commandPendingIntent(ACTION_FAST_FORWARD, REQUEST_FAST_FORWARD)
+        )
+        val nextAction = if (playerController.hasQueueItems()) {
+            NotificationCompat.Action(
+                androidx.media3.session.R.drawable.media3_icon_next,
+                "Next",
+                commandPendingIntent(ACTION_NEXT, REQUEST_NEXT)
+            )
+        } else null
+
+        val builder = NotificationCompat.Builder(this, PLAYBACK_CHANNEL_ID)
             .setSmallIcon(androidx.media3.session.R.drawable.media3_icon_play)
             .setContentTitle(title)
             .setContentText(text)
@@ -139,11 +177,27 @@ class PlaybackService : MediaSessionService() {
             .setOngoing(true)
             .setSilent(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setStyle(
-                androidx.media.app.NotificationCompat.MediaStyle()
-                    .setMediaSession(session.sessionCompatToken)
-            )
-            .build()
+            .addAction(rewindAction)
+            .addAction(playPauseAction)
+            .addAction(forwardAction)
+        nextAction?.let { builder.addAction(it) }
+
+        builder.setStyle(
+            androidx.media.app.NotificationCompat.MediaStyle()
+                .setMediaSession(session.sessionCompatToken)
+                .setShowActionsInCompactView(0, 1, 2)
+        )
+        return builder.build()
+    }
+
+    private fun commandPendingIntent(action: String, requestCode: Int): PendingIntent {
+        val intent = Intent(this, PlaybackService::class.java).setAction(action)
+        return PendingIntent.getService(
+            this,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
     }
 
     private fun ensureChannel() {
@@ -164,5 +218,15 @@ class PlaybackService : MediaSessionService() {
         const val PLAYBACK_CHANNEL_ID = "playback"
         // Matches DefaultMediaNotificationProvider.DEFAULT_NOTIFICATION_ID.
         const val PLAYBACK_NOTIFICATION_ID = 1001
+
+        const val ACTION_REWIND = "com.example.mypodcast.media.REWIND"
+        const val ACTION_FAST_FORWARD = "com.example.mypodcast.media.FAST_FORWARD"
+        const val ACTION_PLAY_PAUSE = "com.example.mypodcast.media.PLAY_PAUSE"
+        const val ACTION_NEXT = "com.example.mypodcast.media.NEXT"
+
+        const val REQUEST_REWIND = 1
+        const val REQUEST_FAST_FORWARD = 2
+        const val REQUEST_PLAY_PAUSE = 3
+        const val REQUEST_NEXT = 4
     }
 }

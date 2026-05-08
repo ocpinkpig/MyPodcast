@@ -49,6 +49,8 @@ class PlayerController @Inject constructor(
                 .build(),
             true
         )
+        .setSeekBackIncrementMs(30_000L)
+        .setSeekForwardIncrementMs(30_000L)
         .build()
 
     private val _playerState = MutableStateFlow(PlayerState())
