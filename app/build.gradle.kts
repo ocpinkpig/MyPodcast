@@ -39,6 +39,11 @@ android {
         excludes += "/META-INF/{AL2.0,LGPL2.1}"
       }
     }
+
+    testOptions {
+      unitTests.isReturnDefaultValues = true
+      unitTests.isIncludeAndroidResources = true
+    }
 }
 
 kotlin {
@@ -74,6 +79,7 @@ dependencies {
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
   testImplementation("androidx.media3:media3-test-utils:1.5.1")
+  testImplementation("org.robolectric:robolectric:4.13")
 
   // Instrumented tests: jUnit rules and runners
   androidTestImplementation(libs.androidx.test.core)
