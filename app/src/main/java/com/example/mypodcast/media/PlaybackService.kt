@@ -132,7 +132,7 @@ class PlaybackService : MediaSessionService() {
         val title = metadata.title?.toString().orEmpty().ifEmpty { getString(R.string.app_name) }
         val text = metadata.artist?.toString().orEmpty()
         return NotificationCompat.Builder(this, PLAYBACK_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(androidx.media3.session.R.drawable.media3_icon_play)
             .setContentTitle(title)
             .setContentText(text)
             .setLargeIcon(artwork)
