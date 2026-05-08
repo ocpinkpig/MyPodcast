@@ -18,6 +18,9 @@ import androidx.media3.common.Player
 import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
+import com.google.common.util.concurrent.ListenableFuture
 import com.example.mypodcast.MainActivity
 import com.example.mypodcast.R
 import com.google.common.util.concurrent.FutureCallback
@@ -52,16 +55,47 @@ class PlaybackService : MediaSessionService() {
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
+        val rewindCommand = SessionCommand(SESSION_CMD_REWIND_30, android.os.Bundle.EMPTY)
+        val forwardCommand = SessionCommand(SESSION_CMD_FORWARD_30, android.os.Bundle.EMPTY)
         val rewindButton = CommandButton.Builder(CommandButton.ICON_SKIP_BACK_30)
-            .setPlayerCommand(Player.COMMAND_SEEK_BACK)
+            .setSessionCommand(rewindCommand)
             .setDisplayName("Rewind 30 seconds")
             .build()
         val forwardButton = CommandButton.Builder(CommandButton.ICON_SKIP_FORWARD_30)
-            .setPlayerCommand(Player.COMMAND_SEEK_FORWARD)
+            .setSessionCommand(forwardCommand)
             .setDisplayName("Forward 30 seconds")
             .build()
+        val sessionCallback = object : MediaSession.Callback {
+            override fun onConnect(
+                session: MediaSession,
+                controller: MediaSession.ControllerInfo
+            ): MediaSession.ConnectionResult {
+                val available = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS
+                    .buildUpon()
+                    .add(rewindCommand)
+                    .add(forwardCommand)
+                    .build()
+                return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+                    .setAvailableSessionCommands(available)
+                    .build()
+            }
+
+            override fun onCustomCommand(
+                session: MediaSession,
+                controller: MediaSession.ControllerInfo,
+                customCommand: SessionCommand,
+                args: android.os.Bundle
+            ): ListenableFuture<SessionResult> {
+                when (customCommand.customAction) {
+                    SESSION_CMD_REWIND_30 -> session.player.seekBack()
+                    SESSION_CMD_FORWARD_30 -> session.player.seekForward()
+                }
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+        }
         val session = MediaSession.Builder(this, queueAwarePlayer)
             .setSessionActivity(sessionActivityIntent)
+            .setCallback(sessionCallback)
             .setCustomLayout(listOf(rewindButton, forwardButton))
             .setMediaButtonPreferences(listOf(rewindButton, forwardButton))
             .build()
@@ -234,6 +268,9 @@ class PlaybackService : MediaSessionService() {
         const val ACTION_FAST_FORWARD = "com.example.mypodcast.media.FAST_FORWARD"
         const val ACTION_PLAY_PAUSE = "com.example.mypodcast.media.PLAY_PAUSE"
         const val ACTION_NEXT = "com.example.mypodcast.media.NEXT"
+
+        const val SESSION_CMD_REWIND_30 = "com.example.mypodcast.media.cmd.REWIND_30"
+        const val SESSION_CMD_FORWARD_30 = "com.example.mypodcast.media.cmd.FORWARD_30"
 
         const val REQUEST_REWIND = 1
         const val REQUEST_FAST_FORWARD = 2
