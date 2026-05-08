@@ -15,6 +15,7 @@ import androidx.core.app.ServiceCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.example.mypodcast.MainActivity
@@ -51,8 +52,18 @@ class PlaybackService : MediaSessionService() {
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
+        val rewindButton = CommandButton.Builder(CommandButton.ICON_SKIP_BACK_30)
+            .setPlayerCommand(Player.COMMAND_SEEK_BACK)
+            .setDisplayName("Rewind 30 seconds")
+            .build()
+        val forwardButton = CommandButton.Builder(CommandButton.ICON_SKIP_FORWARD_30)
+            .setPlayerCommand(Player.COMMAND_SEEK_FORWARD)
+            .setDisplayName("Forward 30 seconds")
+            .build()
         val session = MediaSession.Builder(this, queueAwarePlayer)
             .setSessionActivity(sessionActivityIntent)
+            .setCustomLayout(listOf(rewindButton, forwardButton))
+            .setMediaButtonPreferences(listOf(rewindButton, forwardButton))
             .build()
         mediaSession = session
 
