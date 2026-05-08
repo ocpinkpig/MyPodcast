@@ -258,6 +258,8 @@ class PlayerController @Inject constructor(
         }
     }
 
+    fun hasQueueItems(): Boolean = _playerState.value.queue.isNotEmpty()
+
     fun release() {
         // Snapshot state synchronously before releasing ExoPlayer so the
         // IO coroutine reads a valid position even after exoPlayer.release().
@@ -318,7 +320,7 @@ class PlayerController @Inject constructor(
         persistProgress(episode.guid, positionMs = 0L, isPlayed = true)
     }
 
-    private fun playNextInQueue() {
+    internal fun playNextInQueue() {
         val queue = _playerState.value.queue.toMutableList()
         val next = queue.firstOrNull() ?: return
         queue.removeAt(0)
