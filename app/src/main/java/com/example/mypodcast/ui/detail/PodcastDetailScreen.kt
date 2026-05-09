@@ -1,5 +1,6 @@
 package com.example.mypodcast.ui.detail
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,6 +54,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -122,6 +124,7 @@ fun PodcastDetailScreen(
                                 title = podcast.title,
                                 artistName = podcast.artistName,
                                 description = podcast.description,
+                                feedUrl = podcast.feedUrl,
                                 isSubscribed = state.isSubscribed,
                                 onBack = onBack,
                                 onSubscribeToggle = { viewModel.toggleSubscription(podcastId) }
@@ -168,11 +171,13 @@ private fun PodcastHero(
     title: String,
     artistName: String,
     description: String?,
+    feedUrl: String,
     isSubscribed: Boolean,
     onBack: () -> Unit,
     onSubscribeToggle: () -> Unit
 ) {
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
+    val context = LocalContext.current
 
     Box(modifier = Modifier.fillMaxWidth()) {
         AsyncImage(
@@ -213,10 +218,35 @@ private fun PodcastHero(
                             tint = Color.White
                         )
                     }
-                    IconButton(onClick = { /* share placeholder */ }) {
+                    IconButton(onClick = {
+                        val summary = description
+                            ?.let {
+                                HtmlCompat.fromHtml(
+                                    it,
+                                    HtmlCompat.FROM_HTML_MODE_COMPACT
+                                ).toString()
+                            }
+                            ?.trim()
+                            ?.takeIf { it.isNotEmpty() }
+                        val shareText = buildString {
+                            append(title)
+                            append(" — ")
+                            append(feedUrl)
+                            if (summary != null) {
+                                append("\n\n")
+                                append(summary)
+                            }
+                        }
+                        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, title)
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                        }
+                        context.startActivity(Intent.createChooser(sendIntent, null))
+                    }) {
                         Icon(
                             Icons.Default.Share,
-                            contentDescription = "Share",
+                            contentDescription = "Share podcast",
                             tint = Color.White
                         )
                     }
