@@ -18,7 +18,10 @@ import javax.inject.Inject
 
 private const val SEVEN_DAYS_MS = 7L * 24 * 60 * 60 * 1000
 
-enum class LibraryTab { SUBSCRIPTIONS, DOWNLOADS }
+enum class LibraryTab(val title: String) {
+    SUBSCRIPTIONS("Subscriptions"),
+    DOWNLOADS("Downloads")
+}
 
 data class LibraryUiState(
     val subscriptions: List<Podcast> = emptyList(),
