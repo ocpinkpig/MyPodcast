@@ -1,5 +1,6 @@
 package com.example.mypodcast.ui.player
 
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -40,6 +41,7 @@ import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay30
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
@@ -67,6 +69,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -94,6 +97,9 @@ fun PlayerScreen(
     val displayState = state.asPlayerScreenState(episodeGuid)
     var showSpeedSheet by remember { mutableStateOf(false) }
     var showSleepTimerSheet by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val shareEpisode = displayState.episode
+    val canShare = shareEpisode != null
 
     Scaffold(
         topBar = {
@@ -105,6 +111,41 @@ fun PlayerScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = {
+                            shareEpisode?.let { episode ->
+                                val notes = episode.description
+                                    ?.let {
+                                        HtmlCompat.fromHtml(
+                                            it,
+                                            HtmlCompat.FROM_HTML_MODE_COMPACT
+                                        ).toString()
+                                    }
+                                    ?.trim()
+                                    ?.takeIf { it.isNotEmpty() }
+                                val shareText = buildString {
+                                    append(episode.title)
+                                    append(" — ")
+                                    append(episode.audioUrl)
+                                    if (notes != null) {
+                                        append("\n\n")
+                                        append(notes)
+                                    }
+                                }
+                                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_SUBJECT, episode.title)
+                                    putExtra(Intent.EXTRA_TEXT, shareText)
+                                }
+                                context.startActivity(
+                                    Intent.createChooser(sendIntent, null)
+                                )
+                            }
+                        },
+                        enabled = canShare
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = "Share episode")
+                    }
                     IconButton(onClick = { showSleepTimerSheet = true }) {
                         Icon(Icons.Default.MoreHoriz, contentDescription = "More player options")
                     }
