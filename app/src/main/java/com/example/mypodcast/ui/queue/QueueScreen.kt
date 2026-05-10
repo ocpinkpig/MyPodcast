@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -49,6 +51,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,6 +65,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.ui.main.MainScreenViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.time.Instant
@@ -86,7 +90,23 @@ fun QueueScreen(
     val queue = playerState.queue
     val favorites by viewModel.favoriteEpisodes.collectAsStateWithLifecycle()
     val history by viewModel.historyEpisodes.collectAsStateWithLifecycle()
+    val tabs = remember { QueueTab.entries.toList() }
     var selectedTab by remember { mutableStateOf(QueueTab.QUEUE) }
+    val pagerState = rememberPagerState(
+        initialPage = selectedTab.ordinal,
+        pageCount = { tabs.size }
+    )
+
+    LaunchedEffect(selectedTab) {
+        if (pagerState.currentPage != selectedTab.ordinal) {
+            pagerState.animateScrollToPage(selectedTab.ordinal)
+        }
+    }
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage }
+            .distinctUntilChanged()
+            .collect { page -> selectedTab = tabs[page] }
+    }
 
     Scaffold(
         containerColor = Color.Black,
@@ -131,79 +151,84 @@ fun QueueScreen(
         ) {
             QueueTabs(selected = selectedTab, onSelect = { selectedTab = it })
 
-            when (selectedTab) {
-                QueueTab.QUEUE -> {
-                    if (current == null && queue.isEmpty()) {
-                        EmptyQueue(Modifier.weight(1f))
-                        return@Column
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        current?.let { episode ->
-                            QueueEpisodeRow(
-                                episode = episode,
-                                status = "Playing",
-                                onPlay = { viewModel.togglePlayPause() },
-                                onClick = { onEpisodeClick(episode.guid) }
-                            )
-                            HorizontalDivider(color = QueueDivider)
-                        }
-                        ReorderableQueueList(
-                            queue = queue,
-                            onMove = viewModel::moveQueueItem,
-                            onPlay = { guid -> viewModel.skipToQueueItem(guid) },
-                            onRemove = { guid -> viewModel.removeFromQueue(guid) },
-                            onEpisodeClick = { episode ->
-                                viewModel.prepareEpisode(episode)
-                                onEpisodeClick(episode.guid)
-                            },
-                            onClearQueue = viewModel::clearQueue
-                        )
-                    }
-                }
-                QueueTab.FAVORITES -> {
-                    if (favorites.isEmpty()) {
-                        EmptyFavorites(Modifier.weight(1f))
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(bottom = 20.dp)
-                        ) {
-                            items(favorites, key = { "fav-${it.guid}" }) { episode ->
-                                QueueEpisodeRow(
-                                    episode = episode,
-                                    status = null,
-                                    onPlay = { viewModel.playEpisode(episode) },
-                                    onClick = {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.weight(1f)
+            ) { page ->
+                when (tabs[page]) {
+                    QueueTab.QUEUE -> {
+                        if (current == null && queue.isEmpty()) {
+                            EmptyQueue(Modifier.fillMaxSize())
+                        } else {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                current?.let { episode ->
+                                    QueueEpisodeRow(
+                                        episode = episode,
+                                        status = "Playing",
+                                        onPlay = { viewModel.togglePlayPause() },
+                                        onClick = { onEpisodeClick(episode.guid) }
+                                    )
+                                    HorizontalDivider(color = QueueDivider)
+                                }
+                                ReorderableQueueList(
+                                    queue = queue,
+                                    onMove = viewModel::moveQueueItem,
+                                    onPlay = { guid -> viewModel.skipToQueueItem(guid) },
+                                    onRemove = { guid -> viewModel.removeFromQueue(guid) },
+                                    onEpisodeClick = { episode ->
                                         viewModel.prepareEpisode(episode)
                                         onEpisodeClick(episode.guid)
                                     },
-                                    showDragHandle = false
+                                    onClearQueue = viewModel::clearQueue
                                 )
-                                HorizontalDivider(color = QueueDivider)
                             }
                         }
                     }
-                }
-                QueueTab.HISTORY -> {
-                    if (history.isEmpty()) {
-                        EmptyHistory(Modifier.weight(1f))
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(bottom = 20.dp)
-                        ) {
-                            items(history, key = { "hist-${it.guid}" }) { episode ->
-                                QueueEpisodeRow(
-                                    episode = episode,
-                                    status = null,
-                                    onPlay = { viewModel.playEpisode(episode) },
-                                    onClick = {
-                                        viewModel.prepareEpisode(episode)
-                                        onEpisodeClick(episode.guid)
-                                    },
-                                    showDragHandle = false
-                                )
-                                HorizontalDivider(color = QueueDivider)
+                    QueueTab.FAVORITES -> {
+                        if (favorites.isEmpty()) {
+                            EmptyFavorites(Modifier.fillMaxSize())
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = 20.dp)
+                            ) {
+                                items(favorites, key = { "fav-${it.guid}" }) { episode ->
+                                    QueueEpisodeRow(
+                                        episode = episode,
+                                        status = null,
+                                        onPlay = { viewModel.playEpisode(episode) },
+                                        onClick = {
+                                            viewModel.prepareEpisode(episode)
+                                            onEpisodeClick(episode.guid)
+                                        },
+                                        showDragHandle = false
+                                    )
+                                    HorizontalDivider(color = QueueDivider)
+                                }
+                            }
+                        }
+                    }
+                    QueueTab.HISTORY -> {
+                        if (history.isEmpty()) {
+                            EmptyHistory(Modifier.fillMaxSize())
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = 20.dp)
+                            ) {
+                                items(history, key = { "hist-${it.guid}" }) { episode ->
+                                    QueueEpisodeRow(
+                                        episode = episode,
+                                        status = null,
+                                        onPlay = { viewModel.playEpisode(episode) },
+                                        onClick = {
+                                            viewModel.prepareEpisode(episode)
+                                            onEpisodeClick(episode.guid)
+                                        },
+                                        showDragHandle = false
+                                    )
+                                    HorizontalDivider(color = QueueDivider)
+                                }
                             }
                         }
                     }
