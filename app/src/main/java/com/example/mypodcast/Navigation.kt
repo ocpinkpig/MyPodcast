@@ -45,9 +45,11 @@ fun MainNavigation() {
             entry<LibraryNavKey> {
                 MainScreen(
                     backStack = backStack,
-                    onNavigate = { key -> backStack.add(key) }
+                    onNavigate = { key -> backStack.add(key) },
+                    contentWindowInsets = WindowInsets(0)
                 ) {
                     LibraryScreen(
+                        onBack = { backStack.navigateBackToHome() },
                         onPodcastClick = { id -> backStack.add(PodcastDetailNavKey(id)) },
                         onEpisodePlay = { guid -> backStack.add(PlayerNavKey(guid)) }
                     )
