@@ -36,10 +36,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -238,51 +240,28 @@ fun QueueScreen(
     }
 }
 
-private enum class QueueTab { QUEUE, FAVORITES, HISTORY }
+private enum class QueueTab(val title: String) {
+    QUEUE("Queue"),
+    FAVORITES("Favorites"),
+    HISTORY("History")
+}
 
 @Composable
 private fun QueueTabs(selected: QueueTab, onSelect: (QueueTab) -> Unit) {
-    val tabs = listOf(
-        "QUEUE" to QueueTab.QUEUE,
-        "FAVORITES" to QueueTab.FAVORITES,
-        "HISTORY" to QueueTab.HISTORY
-    )
-
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            tabs.forEach { (label, tab) ->
-                val isSelected = tab == selected
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp)
-                        .clickable { onSelect(tab) },
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Bottom
-                ) {
-                    Text(
-                        text = label,
-                        color = if (isSelected) QueuePurple else QueuePurple.copy(alpha = 0.72f),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Box(
-                        modifier = Modifier
-                            .height(3.dp)
-                            .fillMaxWidth()
-                            .background(if (isSelected) QueuePurple else Color.Transparent)
-                    )
-                }
-            }
+    PrimaryTabRow(
+        selectedTabIndex = selected.ordinal,
+        containerColor = Color.Black,
+        contentColor = QueuePurple
+    ) {
+        QueueTab.entries.forEach { tab ->
+            Tab(
+                selected = tab == selected,
+                onClick = { onSelect(tab) },
+                text = { Text(tab.title) },
+                selectedContentColor = QueuePurple,
+                unselectedContentColor = QueuePurple.copy(alpha = 0.72f)
+            )
         }
-        HorizontalDivider(color = QueueDivider)
     }
 }
 
