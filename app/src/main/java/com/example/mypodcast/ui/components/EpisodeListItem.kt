@@ -113,9 +113,11 @@ fun EpisodeListItem(
             )
         }
 
-        IconButton(onClick = onPlayClick) {
-            Icon(Icons.Default.PlayArrow, contentDescription = "Play")
-        }
+        CircleIconButton(
+            icon = Icons.Default.PlayArrow,
+            contentDescription = "Play",
+            onClick = onPlayClick
+        )
     }
 }
 
