@@ -2,13 +2,6 @@
 
 A modern Android podcast player, built from scratch with Jetpack Compose, Media3, and a clean-architecture core. It's a reference app for modern Android: Compose-only UI, Navigation 3, Hilt DI, Room persistence, Retrofit + RSS, and a foreground MediaSessionService for proper background playback.
 
-<p align="center">
-  <img src="docs/screenshots/home.png" width="220" alt="Home — featured podcasts" />
-  <img src="docs/screenshots/podcast_detail.png" width="220" alt="Podcast detail" />
-  <img src="docs/screenshots/player.png" width="220" alt="Now Playing" />
-  <img src="docs/screenshots/queue.png" width="220" alt="Play queue" />
-</p>
-
 ## Download
 
 Grab the latest signed APK from the **[Releases page](https://github.com/ocpinkpig/MyPodcast/releases/latest)**, or download directly:
