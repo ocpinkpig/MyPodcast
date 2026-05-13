@@ -1,6 +1,13 @@
 # MyPodcast
 
-A Castbox-inspired Android podcast player, built from scratch with Jetpack Compose, Media3, and a clean-architecture core. It's a reference app for modern Android: Compose-only UI, Navigation 3, Hilt DI, Room persistence, Retrofit + RSS, and a foreground MediaSessionService for proper background playback.
+A modern Android podcast player, built from scratch with Jetpack Compose, Media3, and a clean-architecture core. It's a reference app for modern Android: Compose-only UI, Navigation 3, Hilt DI, Room persistence, Retrofit + RSS, and a foreground MediaSessionService for proper background playback.
+
+<p align="center">
+  <img src="docs/screenshots/home.png" width="220" alt="Home — featured podcasts" />
+  <img src="docs/screenshots/podcast_detail.png" width="220" alt="Podcast detail" />
+  <img src="docs/screenshots/player.png" width="220" alt="Now Playing" />
+  <img src="docs/screenshots/queue.png" width="220" alt="Play queue" />
+</p>
 
 ## Download
 
@@ -18,10 +25,23 @@ Grab the latest signed APK from the **[Releases page](https://github.com/ocpinkp
 
 ## Features
 
+<table>
+<tr>
+<td width="60%" valign="top">
+
 ### Discover & search
 - **Featured podcasts** on the Home tab via the iTunes Search API.
 - **Search** podcasts by name and open a detail page with the show's RSS-parsed episode list.
 - **Subscribe / unsubscribe** to add a show to the Library.
+- A **mini player** stays docked above the bottom nav while you browse.
+
+</td>
+<td width="40%" valign="top" align="center">
+<img src="docs/screenshots/search.png" width="240" alt="Search results with mini player" />
+</td>
+</tr>
+<tr>
+<td width="60%" valign="top">
 
 ### Library
 - **Subscriptions** tab with cover art and per-show new-episode badges.
@@ -29,12 +49,28 @@ Grab the latest signed APK from the **[Releases page](https://github.com/ocpinkp
 - **Downloads** tab listing offline episodes.
 - Tabs are swipeable and styled to match the app's purple Material 3 theme.
 
+</td>
+<td width="40%" valign="top" align="center">
+<img src="docs/screenshots/library.png" width="240" alt="Library with new-episode badge" />
+</td>
+</tr>
+<tr>
+<td width="60%" valign="top">
+
 ### Episodes
 - Full episode metadata from RSS (title, description, duration, publish date, artwork).
 - **Favorite** episodes from the player or detail screen.
-- **Download** for offline listening.
+- **Download** for offline listening (per-episode download button).
 - **Share** an episode or a show via the system share sheet.
 - "NEW" badges that clear automatically after one minute of playback.
+
+</td>
+<td width="40%" valign="top" align="center">
+<img src="docs/screenshots/podcast_detail.png" width="240" alt="Podcast detail with episode list, NEW badge, share, and downloads" />
+</td>
+</tr>
+<tr>
+<td width="60%" valign="top">
 
 ### Playback
 - Background playback through a `MediaSessionService` (`PlaybackService`).
@@ -43,12 +79,27 @@ Grab the latest signed APK from the **[Releases page](https://github.com/ocpinkp
 - **Sleep timer** (`SleepTimerManager`).
 - **Lockscreen / notification controls**: media-style notification with episode artwork, podcast title as subtitle, play/pause, and 30s rewind / fast-forward custom actions. Tapping the notification reopens the app.
 
+</td>
+<td width="40%" valign="top" align="center">
+<img src="docs/screenshots/player.png" width="240" alt="Now Playing screen with speed, sleep timer, favorite, queue, and 30s skip" />
+</td>
+</tr>
+<tr>
+<td width="60%" valign="top">
+
 ### Play queue
 - Add episodes to a queue from anywhere; queue is **persisted in Room** and rehydrated on launch.
 - **Queue tab** with three sub-tabs: **Queue / Favorites / History**, swipeable between them.
 - **Drag-to-reorder** queue items, **swipe-to-remove** with confirmation.
 - The system "next" command (lockscreen, headset, Bluetooth) advances through the in-app queue via a `QueueAwarePlayer` wrapper.
 - History records every episode you play; favorites are kept across reinstalls of the same subscription.
+
+</td>
+<td width="40%" valign="top" align="center">
+<img src="docs/screenshots/queue.png" width="240" alt="Play queue with sub-tabs and drag handles" />
+</td>
+</tr>
+</table>
 
 ## Tech stack
 
