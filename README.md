@@ -30,7 +30,7 @@ Grab the latest signed APK from the **[Releases page](https://github.com/ocpinkp
 
 </td>
 <td width="40%" valign="top" align="center">
-<img src="docs/screenshots/search.png" width="240" alt="Search results with mini player" />
+<img src="docs/screenshots/home.png" width="240" alt="Home — featured podcasts" />
 </td>
 </tr>
 <tr>
