@@ -9,38 +9,21 @@
     <path android:pathData="M0,0h108v108h-108z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:endX="98"
-                android:endY="104"
-                android:startX="12"
-                android:startY="8"
+                android:endX="102"
+                android:endY="106"
+                android:startX="8"
+                android:startY="4"
                 android:type="linear">
                 <item
-                    android:color="#36D8B0"
+                    android:color="#FF9A62"
                     android:offset="0" />
                 <item
-                    android:color="#2CB1D8"
-                    android:offset="0.48" />
+                    android:color="#E85F84"
+                    android:offset="0.42" />
                 <item
-                    android:color="#247BD6"
+                    android:color="#4D6DE8"
                     android:offset="1" />
             </gradient>
         </aapt:attr>
     </path>
-
-    <path
-        android:fillColor="#18FFFFFF"
-        android:pathData="M0,72C13,65 24,65 38,72C52,79 66,79 80,72C92,66 100,66 108,70V108H0Z" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M18,78V83M29,73V87M40,76V84M51,70V90M62,75V85"
-        android:strokeWidth="4.8"
-        android:strokeColor="#66FFFFFF"
-        android:strokeLineCap="round" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M87,24C91,20 97,22 97,28C97,35 89,35 89,29V18"
-        android:strokeWidth="4"
-        android:strokeColor="#D9FFFFFF"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
 </vector>
