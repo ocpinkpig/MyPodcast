@@ -1,10 +1,13 @@
 package com.example.mypodcast.ui.library
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.Podcast
 import com.example.mypodcast.domain.repository.EpisodeRepository
 import com.example.mypodcast.domain.repository.LibraryRepository
 import com.example.mypodcast.domain.repository.PlayerRepository
+import com.example.mypodcast.domain.usecase.episode.DownloadEpisodeUseCase
 import com.example.mypodcast.domain.usecase.library.GetLibraryUseCase
 import junit.framework.TestCase.assertEquals
 import kotlinx.coroutines.Dispatchers
@@ -24,9 +27,15 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestWatcher
+import org.junit.runner.RunWith
 import org.junit.runner.Description
+import org.robolectric.annotation.Config
+import org.robolectric.RobolectricTestRunner
+import okhttp3.OkHttpClient
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class LibraryViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
@@ -44,11 +53,96 @@ class LibraryViewModelTest {
             getLibrary = GetLibraryUseCase(libraryRepository),
             libraryRepository = libraryRepository,
             episodeRepository = episodeRepository,
+            downloadEpisodeUseCase = downloadEpisodeUseCase(libraryRepository),
             playerRepository = FakePlayerRepository()
         )
         advanceUntilIdle()
 
         assertEquals(mapOf(1L to 2), viewModel.uiState.value.newEpisodeCounts)
+    }
+
+    @Test
+    fun searchResults_includeMatchingSubscriptionsAndDownloads() = runTest {
+        val podcast = podcast(id = 1L).copy(title = "Daily Tech", artistName = "Studio")
+        val download = episode("daily-download", 2L).copy(title = "Daily Download")
+        val libraryRepository = FakeLibraryRepository(
+            subscriptions = listOf(podcast),
+            downloads = listOf(download)
+        )
+        val viewModel = LibraryViewModel(
+            getLibrary = GetLibraryUseCase(libraryRepository),
+            libraryRepository = libraryRepository,
+            episodeRepository = FakeEpisodeRepository(
+                existingEpisodes = emptyMap(),
+                fetchedEpisodes = emptyMap()
+            ),
+            downloadEpisodeUseCase = downloadEpisodeUseCase(libraryRepository),
+            playerRepository = FakePlayerRepository()
+        )
+        advanceUntilIdle()
+
+        viewModel.openSearch()
+        viewModel.onSearchQueryChange("daily")
+
+        assertEquals(
+            listOf(
+                LibrarySearchResult.Subscription(podcast),
+                LibrarySearchResult.Download(download)
+            ),
+            viewModel.uiState.value.searchResults
+        )
+    }
+
+    @Test
+    fun closeSearch_clearsQueryAndResults() = runTest {
+        val podcast = podcast(id = 1L).copy(title = "Daily Tech")
+        val libraryRepository = FakeLibraryRepository(listOf(podcast))
+        val viewModel = LibraryViewModel(
+            getLibrary = GetLibraryUseCase(libraryRepository),
+            libraryRepository = libraryRepository,
+            episodeRepository = FakeEpisodeRepository(
+                existingEpisodes = emptyMap(),
+                fetchedEpisodes = emptyMap()
+            ),
+            downloadEpisodeUseCase = downloadEpisodeUseCase(libraryRepository),
+            playerRepository = FakePlayerRepository()
+        )
+        advanceUntilIdle()
+
+        viewModel.openSearch()
+        viewModel.onSearchQueryChange("daily")
+        viewModel.closeSearch()
+
+        assertEquals(false, viewModel.uiState.value.isSearchActive)
+        assertEquals("", viewModel.uiState.value.searchQuery)
+        assertEquals(emptyList<LibrarySearchResult>(), viewModel.uiState.value.searchResults)
+    }
+
+    @Test
+    fun searchResults_includeNonDownloadedEpisodesFromSubscribedPodcasts() = runTest {
+        val podcast = podcast(id = 1L).copy(title = "Daily Tech")
+        val episode = episode("ai-news", 1L).copy(title = "AI News Roundup")
+        val libraryRepository = FakeLibraryRepository(subscriptions = listOf(podcast))
+        val viewModel = LibraryViewModel(
+            getLibrary = GetLibraryUseCase(libraryRepository),
+            libraryRepository = libraryRepository,
+            episodeRepository = FakeEpisodeRepository(
+                existingEpisodes = mapOf(1L to listOf(episode)),
+                fetchedEpisodes = emptyMap()
+            ),
+            downloadEpisodeUseCase = downloadEpisodeUseCase(libraryRepository),
+            playerRepository = FakePlayerRepository()
+        )
+        advanceUntilIdle()
+
+        viewModel.openSearch()
+        viewModel.onSearchQueryChange("roundup")
+
+        assertEquals(
+            listOf(LibrarySearchResult.Download(episode)),
+            viewModel.uiState.value.searchResults
+        )
+        assertEquals(emptySet<String>(), viewModel.uiState.value.downloadedGuids)
     }
 
     private fun podcast(id: Long) = Podcast(
@@ -73,6 +167,13 @@ class LibraryViewModelTest {
         durationSeconds = 60,
         fileSizeBytes = 1_024L
     )
+
+    private fun downloadEpisodeUseCase(libraryRepository: LibraryRepository): DownloadEpisodeUseCase =
+        DownloadEpisodeUseCase(
+            context = ApplicationProvider.getApplicationContext<Context>(),
+            okHttpClient = OkHttpClient(),
+            libraryRepository = libraryRepository
+        )
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -89,15 +190,17 @@ class MainDispatcherRule(
 }
 
 private class FakeLibraryRepository(
-    subscriptions: List<Podcast>
+    subscriptions: List<Podcast>,
+    downloads: List<Episode> = emptyList()
 ) : LibraryRepository {
     private val subscriptionsFlow = MutableStateFlow(subscriptions)
+    private val downloadsFlow = MutableStateFlow(downloads)
 
     override suspend fun subscribe(podcastId: Long) = Unit
     override suspend fun unsubscribe(podcastId: Long) = Unit
     override fun observeSubscriptions(): Flow<List<Podcast>> = subscriptionsFlow
     override fun observeIsSubscribed(podcastId: Long): Flow<Boolean> = flowOf(false)
-    override fun observeDownloadedEpisodes(): Flow<List<Episode>> = flowOf(emptyList())
+    override fun observeDownloadedEpisodes(): Flow<List<Episode>> = downloadsFlow
     override fun observeIsDownloaded(episodeGuid: String): Flow<Boolean> = flowOf(false)
     override suspend fun saveDownload(
         episodeGuid: String,

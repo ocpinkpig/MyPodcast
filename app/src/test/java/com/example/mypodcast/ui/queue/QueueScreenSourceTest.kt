@@ -10,9 +10,9 @@ class QueueScreenSourceTest {
         val source = File("src/main/java/com/example/mypodcast/ui/queue/QueueScreen.kt").readText()
 
         assertTrue(source.contains("Color.Black"))
-        assertTrue(source.contains("\"QUEUE\""))
-        assertTrue(source.contains("\"FAVORITES\""))
-        assertTrue(source.contains("\"HISTORY\""))
+        assertTrue(source.contains("QUEUE(\"Queue\")"))
+        assertTrue(source.contains("FAVORITES(\"Favorites\")"))
+        assertTrue(source.contains("HISTORY(\"History\")"))
         assertTrue(source.contains("AsyncImage"))
         assertTrue(source.contains("DragHandle"))
         assertTrue(source.contains("CircleShape"))
