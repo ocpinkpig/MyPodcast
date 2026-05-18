@@ -50,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.ui.components.EpisodeListItem
 import com.example.mypodcast.ui.components.PodcastCard
+import com.example.mypodcast.ui.components.PodcastCardGridDefaults
 
 private val LibraryTabPurple = Color(0xFF9B66C6)
 
@@ -160,11 +161,11 @@ fun LibraryScreen(
                             )
                         } else {
                             LazyVerticalGrid(
-                                columns = GridCells.Fixed(3),
+                                columns = GridCells.Fixed(PodcastCardGridDefaults.ColumnCount),
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                contentPadding = PaddingValues(PodcastCardGridDefaults.ContentPadding),
+                                horizontalArrangement = Arrangement.spacedBy(PodcastCardGridDefaults.Spacing),
+                                verticalArrangement = Arrangement.spacedBy(PodcastCardGridDefaults.Spacing)
                             ) {
                                 items(state.subscriptions, key = { it.id }) { podcast ->
                                     PodcastCard(

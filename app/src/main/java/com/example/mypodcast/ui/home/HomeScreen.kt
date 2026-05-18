@@ -1,6 +1,7 @@
 package com.example.mypodcast.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mypodcast.ui.components.LoadingIndicator
 import com.example.mypodcast.ui.components.PodcastCard
+import com.example.mypodcast.ui.components.PodcastCardGridDefaults
 
 @Composable
 fun HomeScreen(
@@ -57,16 +59,21 @@ private fun HomeContent(
             }
 
             item(key = "row_$category") {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(podcasts, key = { it.id }) { podcast ->
-                        PodcastCard(
-                            podcast = podcast,
-                            onClick = { onPodcastClick(podcast.id) },
-                            modifier = Modifier.width(140.dp)
-                        )
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val subscriptionGridCardWidth =
+                        PodcastCardGridDefaults.cardWidthFor(maxWidth)
+
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(podcasts, key = { it.id }) { podcast ->
+                            PodcastCard(
+                                podcast = podcast,
+                                onClick = { onPodcastClick(podcast.id) },
+                                modifier = Modifier.width(subscriptionGridCardWidth)
+                            )
+                        }
                     }
                 }
             }

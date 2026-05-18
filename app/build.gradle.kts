@@ -12,6 +12,7 @@ val keystorePropsFile = rootProject.file("keystore.properties")
 val keystoreProps = Properties().apply {
     if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
 }
+val sharedDebugKeystoreFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
 
 android {
     namespace = "com.example.mypodcast"
@@ -25,6 +26,12 @@ android {
     }
 
     signingConfigs {
+        getByName("debug") {
+            storeFile = sharedDebugKeystoreFile
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (keystorePropsFile.exists()) {
             create("release") {
                 storeFile = file(keystoreProps.getProperty("storeFile"))
