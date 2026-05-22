@@ -166,7 +166,7 @@ fun QueueScreen(
                                 current?.let { episode ->
                                     QueueEpisodeRow(
                                         episode = episode,
-                                        status = "Playing",
+                                        status = if (playerState.isPlaying) "Playing" else "Paused",
                                         onPlay = { viewModel.togglePlayPause() },
                                         onClick = { onEpisodeClick(episode.guid) }
                                     )

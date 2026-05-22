@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -96,8 +97,8 @@ class PlayerController @Inject constructor(
             }
         }
 
-        scope.launch(Dispatchers.IO) {
-            hydrateQueue()
+        scope.launch {
+            hydratePlaybackState()
         }
     }
 
@@ -116,13 +117,19 @@ class PlayerController @Inject constructor(
         _playerState.update { it.copy(previewEpisode = episode, error = null) }
     }
 
-    private fun loadEpisode(episode: Episode, autoPlay: Boolean) {
+    private fun loadEpisode(
+        episode: Episode,
+        autoPlay: Boolean,
+        touchLastPlayed: Boolean = true
+    ) {
         // Persist outgoing episode's position before swapping.
         persistCurrent()
 
         currentEpisode = episode
         val now = System.currentTimeMillis()
-        scope.launch(Dispatchers.IO) { episodeRepository.get().touchLastPlayed(episode.guid, now) }
+        if (touchLastPlayed) {
+            scope.launch(Dispatchers.IO) { episodeRepository.get().touchLastPlayed(episode.guid, now) }
+        }
         val mediaItem = buildMediaItem(episode, podcastTitle = null)
         exoPlayer.setMediaItem(mediaItem)
         loadPodcastTitleIntoMetadata(episode)
@@ -352,14 +359,33 @@ class PlayerController @Inject constructor(
         loadEpisode(next, autoPlay = true)
     }
 
-    private suspend fun hydrateQueue() {
-        val ordered = queueDao.get().getQueueItemsOrdered()
-        val episodes = ordered.mapNotNull { item -> episodeRepository.get().getEpisode(item.episodeGuid) }
-        _playerState.update { it.copy(queue = episodes) }
-        if (episodes.size != ordered.size) {
-            persistQueue(episodes)
+    private suspend fun hydratePlaybackState() {
+        val hydrated = withContext(Dispatchers.IO) {
+            val ordered = queueDao.get().getQueueItemsOrdered()
+            val episodes = ordered.mapNotNull { item -> episodeRepository.get().getEpisode(item.episodeGuid) }
+            HydratedPlaybackState(
+                queue = episodes,
+                removedMissingQueueItems = episodes.size != ordered.size,
+                currentEpisode = episodeRepository.get().getLastUnfinishedPlayback()
+            )
+        }
+
+        _playerState.update { it.copy(queue = hydrated.queue) }
+        if (hydrated.removedMissingQueueItems) {
+            persistQueue(hydrated.queue)
+        }
+
+        val episode = hydrated.currentEpisode
+        if (episode != null && currentEpisode == null) {
+            loadEpisode(episode, autoPlay = false, touchLastPlayed = false)
         }
     }
+
+    private data class HydratedPlaybackState(
+        val queue: List<Episode>,
+        val removedMissingQueueItems: Boolean,
+        val currentEpisode: Episode?
+    )
 
     private fun persistQueue(queue: List<Episode>) {
         scope.launch(Dispatchers.IO) {

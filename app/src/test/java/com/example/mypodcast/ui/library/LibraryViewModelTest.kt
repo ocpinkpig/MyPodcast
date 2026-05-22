@@ -224,6 +224,7 @@ private class FakeEpisodeRepository(
         flowOf(existingEpisodes[podcastId].orEmpty())
 
     override suspend fun getEpisode(guid: String): Episode? = null
+    override suspend fun getLastUnfinishedPlayback(): Episode? = null
     override suspend fun updateProgress(guid: String, positionMs: Long, isPlayed: Boolean) = Unit
     override suspend fun updateFavorite(guid: String, isFavorite: Boolean) = Unit
     override fun observeFavoriteEpisodes(): Flow<List<Episode>> = flowOf(emptyList())

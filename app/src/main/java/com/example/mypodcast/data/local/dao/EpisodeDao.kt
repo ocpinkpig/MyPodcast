@@ -14,6 +14,14 @@ interface EpisodeDao {
     @Query("SELECT * FROM episodes WHERE guid = :guid")
     suspend fun getByGuid(guid: String): EpisodeEntity?
 
+    @Query(
+        "SELECT * FROM episodes " +
+            "WHERE lastPlayedAt > 0 " +
+            "ORDER BY lastPlayedAt DESC " +
+            "LIMIT 1"
+    )
+    suspend fun getLastPlayback(): EpisodeEntity?
+
     @Query("SELECT * FROM episodes WHERE guid IN (:guids)")
     suspend fun getByGuids(guids: List<String>): List<EpisodeEntity>
 

@@ -86,6 +86,7 @@ private class FakeEpisodeRepository : EpisodeRepository {
   override suspend fun fetchEpisodesForPodcast(podcastId: Long, feedUrl: String): List<Episode> = emptyList()
   override fun observeEpisodesForPodcast(podcastId: Long): Flow<List<Episode>> = flowOf(emptyList())
   override suspend fun getEpisode(guid: String): Episode? = null
+  override suspend fun getLastUnfinishedPlayback(): Episode? = null
   override suspend fun updateProgress(guid: String, positionMs: Long, isPlayed: Boolean) = Unit
   override suspend fun updateFavorite(guid: String, isFavorite: Boolean) = Unit
   override fun observeFavoriteEpisodes(): Flow<List<Episode>> = flowOf(emptyList())

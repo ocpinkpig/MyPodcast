@@ -33,7 +33,8 @@ class EpisodeRepositoryImpl @Inject constructor(
             else e.copy(
                 playbackPosition = prior.playbackPosition,
                 isPlayed = prior.isPlayed,
-                isFavorite = prior.isFavorite
+                isFavorite = prior.isFavorite,
+                lastPlayedAt = prior.lastPlayedAt
             )
         }
         episodeDao.upsertAll(merged)
@@ -61,6 +62,13 @@ class EpisodeRepositoryImpl @Inject constructor(
 
     override suspend fun getEpisode(guid: String): Episode? {
         val entity = episodeDao.getByGuid(guid) ?: return null
+        val podcastArtwork = podcastDao.getById(entity.podcastId)?.artworkUrl
+        return entity.toDomain(podcastArtwork)
+    }
+
+    override suspend fun getLastUnfinishedPlayback(): Episode? {
+        val entity = episodeDao.getLastPlayback() ?: return null
+        if (entity.isPlayed) return null
         val podcastArtwork = podcastDao.getById(entity.podcastId)?.artworkUrl
         return entity.toDomain(podcastArtwork)
     }
