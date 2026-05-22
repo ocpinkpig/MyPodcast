@@ -12,6 +12,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
+import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -25,7 +26,6 @@ import com.example.mypodcast.MainActivity
 import com.example.mypodcast.R
 import com.google.common.util.concurrent.FutureCallback
 import com.google.common.util.concurrent.Futures
-import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -165,7 +165,7 @@ class PlaybackService : MediaSessionService() {
                     // Leave the placeholder; nothing else to do.
                 }
             },
-            MoreExecutors.directExecutor()
+            ContextCompat.getMainExecutor(this)
         )
     }
 
