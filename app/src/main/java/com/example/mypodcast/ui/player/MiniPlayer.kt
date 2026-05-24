@@ -3,7 +3,9 @@ package com.example.mypodcast.ui.player
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.os.Build
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,6 +36,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
@@ -43,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.PlayerState
 
 @Composable
@@ -125,5 +130,37 @@ fun MiniPlayer(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun MiniPlayerPreview() {
+    val sampleEpisode = Episode(
+        guid = "preview",
+        podcastId = 0L,
+        title = "Sample episode title that overflows the available width",
+        description = null,
+        audioUrl = "",
+        artworkUrl = null,
+        publishedAt = 0L,
+        durationSeconds = 1800,
+        fileSizeBytes = 0L
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Brush.horizontalGradient(listOf(Color.Red, Color.Blue)))
+    ) {
+        MiniPlayer(
+            state = PlayerState(
+                episode = sampleEpisode,
+                isPlaying = true,
+                positionMs = 600_000L,
+                durationMs = 1_800_000L
+            ),
+            onTap = {},
+            onPlayPauseClick = {}
+        )
     }
 }
