@@ -83,6 +83,7 @@ import com.example.mypodcast.domain.model.Podcast
 import com.example.mypodcast.ui.components.EpisodeListItem
 import com.example.mypodcast.ui.components.PodcastCard
 import com.example.mypodcast.ui.components.PodcastCardGridDefaults
+import com.example.mypodcast.ui.player.LocalMiniPlayerInset
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -266,7 +267,12 @@ fun LibraryScreen(
                                     LazyVerticalGrid(
                                         columns = GridCells.Fixed(PodcastCardGridDefaults.ColumnCount),
                                         modifier = Modifier.fillMaxSize(),
-                                        contentPadding = PaddingValues(PodcastCardGridDefaults.ContentPadding),
+                                        contentPadding = PaddingValues(
+                                            start = PodcastCardGridDefaults.ContentPadding,
+                                            top = PodcastCardGridDefaults.ContentPadding,
+                                            end = PodcastCardGridDefaults.ContentPadding,
+                                            bottom = PodcastCardGridDefaults.ContentPadding + LocalMiniPlayerInset.current
+                                        ),
                                         horizontalArrangement = Arrangement.spacedBy(PodcastCardGridDefaults.Spacing),
                                         verticalArrangement = Arrangement.spacedBy(PodcastCardGridDefaults.Spacing)
                                     ) {
@@ -290,7 +296,10 @@ fun LibraryScreen(
                                     color = LibrarySecondary
                                 )
                             } else {
-                                LazyColumn(Modifier.fillMaxSize()) {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(bottom = LocalMiniPlayerInset.current)
+                                ) {
                                     items(state.downloads, key = { it.guid }) { episode ->
                                         EpisodeListItem(
                                             episode = episode,
@@ -358,7 +367,7 @@ private fun LibrarySearchResults(
         )
         else -> LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 20.dp)
+            contentPadding = PaddingValues(bottom = 20.dp + LocalMiniPlayerInset.current)
         ) {
             items(results, key = { it.key }) { result ->
                 when (result) {
