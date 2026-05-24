@@ -62,27 +62,30 @@ fun MiniPlayer(
 
     val backdrop = LocalBackdropLayer.current
     val supportsBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    val blurLayer = rememberGraphicsLayer().apply {
-        renderEffect = if (supportsBlur) {
+    val blurLayer = rememberGraphicsLayer()
+    val blurEffect = remember(supportsBlur) {
+        if (supportsBlur) {
             RenderEffect.createBlurEffect(24f, 24f, Shader.TileMode.CLAMP)
                 .asComposeRenderEffect()
         } else null
     }
+    blurLayer.renderEffect = blurEffect
     val tintColor = MaterialTheme.colorScheme.surfaceVariant.copy(
         alpha = if (supportsBlur) 0.55f else 0.85f
     )
-    var position by remember { mutableStateOf(Offset.Zero) }
+    var position by remember { mutableStateOf<Offset?>(null) }
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .onGloballyPositioned { position = it.positionInParent() }
             .drawBehind {
-                if (backdrop != null) {
+                val pos = position
+                if (backdrop != null && pos != null) {
                     blurLayer.record(
                         size = IntSize(size.width.toInt(), size.height.toInt())
                     ) {
-                        translate(left = -position.x, top = -position.y) {
+                        translate(left = -pos.x, top = -pos.y) {
                             drawLayer(backdrop)
                         }
                     }
