@@ -2,6 +2,7 @@ package com.example.mypodcast.ui.search
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,6 +22,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mypodcast.ui.components.EpisodeListItem
 import com.example.mypodcast.ui.components.PodcastCard
+import com.example.mypodcast.ui.player.LocalMiniPlayerInset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,7 +63,10 @@ fun SearchScreen(
                 text = "No results for \"${state.query}\"",
                 modifier = Modifier.padding(16.dp)
             )
-            else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
+            else -> LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = LocalMiniPlayerInset.current)
+            ) {
                 items(state.results, key = { it.id }) { podcast ->
                     PodcastCard(
                         podcast = podcast,

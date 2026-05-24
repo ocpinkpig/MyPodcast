@@ -21,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mypodcast.ui.components.LoadingIndicator
 import com.example.mypodcast.ui.components.PodcastCard
 import com.example.mypodcast.ui.components.PodcastCardGridDefaults
+import com.example.mypodcast.ui.player.LocalMiniPlayerInset
 
 @Composable
 fun HomeScreen(
@@ -44,7 +45,10 @@ private fun HomeContent(
     state: HomeUiState,
     onPodcastClick: (Long) -> Unit
 ) {
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = LocalMiniPlayerInset.current)
+    ) {
         state.featuredByCategory.entries.forEachIndexed { index, (category, podcasts) ->
             if (podcasts.isEmpty()) return@forEachIndexed
 

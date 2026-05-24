@@ -66,6 +66,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.example.mypodcast.ui.components.LoadingIndicator
 import com.example.mypodcast.ui.components.PodcastEpisodeRow
+import com.example.mypodcast.ui.player.LocalMiniPlayerInset
 import com.example.mypodcast.ui.player.MiniPlayerBar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -117,7 +118,10 @@ fun PodcastDetailScreen(
                     }
                 ) {
                     CompositionLocalProvider(LocalOverscrollFactory provides null) {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = LocalMiniPlayerInset.current)
+                    ) {
                         item {
                             PodcastHero(
                                 artworkUrl = podcast.artworkUrl,

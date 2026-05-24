@@ -67,6 +67,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.ui.main.MainScreenViewModel
+import com.example.mypodcast.ui.player.LocalMiniPlayerInset
 import kotlinx.coroutines.flow.distinctUntilChanged
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -192,7 +193,7 @@ fun QueueScreen(
                         } else {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = 20.dp)
+                                contentPadding = PaddingValues(bottom = 20.dp + LocalMiniPlayerInset.current)
                             ) {
                                 items(favorites, key = { "fav-${it.guid}" }) { episode ->
                                     QueueEpisodeRow(
@@ -216,7 +217,7 @@ fun QueueScreen(
                         } else {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = 20.dp)
+                                contentPadding = PaddingValues(bottom = 20.dp + LocalMiniPlayerInset.current)
                             ) {
                                 items(history, key = { "hist-${it.guid}" }) { episode ->
                                     QueueEpisodeRow(
@@ -289,7 +290,7 @@ private fun ReorderableQueueList(
     LazyColumn(
         state = lazyListState,
         modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(bottom = 20.dp)
+        contentPadding = PaddingValues(bottom = 20.dp + LocalMiniPlayerInset.current)
     ) {
         items(localQueue, key = { it.guid }) { episode ->
             ReorderableItem(reorderableState, key = episode.guid) { _ ->
