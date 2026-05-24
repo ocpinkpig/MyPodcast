@@ -49,6 +49,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -89,8 +90,12 @@ fun QueueScreen(
     viewModel: MainScreenViewModel = hiltViewModel()
 ) {
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
-    val current = playerState.episode
-    val queue = playerState.queue
+    // Project the wide PlayerState through derivedStateOf so this screen only
+    // recomposes when a field it actually uses (episode/queue/isPlaying)
+    // changes — not on every 500ms position tick.
+    val current by remember { derivedStateOf { playerState.episode } }
+    val queue by remember { derivedStateOf { playerState.queue } }
+    val isPlaying by remember { derivedStateOf { playerState.isPlaying } }
     val favorites by viewModel.favoriteEpisodes.collectAsStateWithLifecycle()
     val history by viewModel.historyEpisodes.collectAsStateWithLifecycle()
     val tabs = remember { QueueTab.entries.toList() }
@@ -167,7 +172,7 @@ fun QueueScreen(
                                 current?.let { episode ->
                                     QueueEpisodeRow(
                                         episode = episode,
-                                        status = if (playerState.isPlaying) "Playing" else "Paused",
+                                        status = if (isPlaying) "Playing" else "Paused",
                                         onPlay = { viewModel.togglePlayPause() },
                                         onClick = { onEpisodeClick(episode.guid) }
                                     )

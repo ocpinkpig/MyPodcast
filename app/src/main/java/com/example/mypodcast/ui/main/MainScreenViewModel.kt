@@ -9,6 +9,8 @@ import com.example.mypodcast.domain.repository.PlayerRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
@@ -18,6 +20,18 @@ class MainScreenViewModel @Inject constructor(
     episodeRepository: EpisodeRepository
 ) : ViewModel() {
     val playerState: StateFlow<PlayerState> = playerRepository.playerState
+
+    // Narrow projection so consumers (e.g., MainScreen scaffold) don't recompose
+    // on every 500ms position tick — only when an episode is loaded/cleared.
+    val hasEpisode: StateFlow<Boolean> =
+        playerRepository.playerState
+            .map { it.episode != null }
+            .distinctUntilChanged()
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                playerRepository.playerState.value.episode != null
+            )
 
     val favoriteEpisodes: StateFlow<List<Episode>> =
         episodeRepository.observeFavoriteEpisodes()

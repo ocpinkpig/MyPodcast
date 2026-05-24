@@ -53,8 +53,12 @@ fun MainScreen(
     val currentRoot = backStack.firstOrNull { it is HomeNavKey || it is SearchNavKey || it is LibraryNavKey || it is QueueNavKey }
 
     val playerViewModel: MainScreenViewModel = hiltViewModel()
-    val playerState by playerViewModel.playerState.collectAsStateWithLifecycle()
-    val miniPlayerInset = if (playerState.episode != null) 64.dp else 0.dp
+    // Subscribe ONLY to the narrow "is an episode loaded" flag, not the whole
+    // PlayerState — the latter ticks every 500 ms during playback and would
+    // recompose this scaffold (and every navigation destination beneath it)
+    // twice per second.
+    val hasEpisode by playerViewModel.hasEpisode.collectAsStateWithLifecycle()
+    val miniPlayerInset = if (hasEpisode) 64.dp else 0.dp
 
     CompositionLocalProvider(LocalMiniPlayerInset provides miniPlayerInset) {
         Scaffold(
