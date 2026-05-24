@@ -1,5 +1,8 @@
 package com.example.mypodcast.ui.player
 
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,11 +22,25 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.mypodcast.domain.model.PlayerState
@@ -38,10 +55,38 @@ fun MiniPlayer(
     val episode = state.episode ?: return
     val progress = if (state.durationMs > 0) state.positionMs.toFloat() / state.durationMs else 0f
 
+    val backdrop = LocalBackdropLayer.current
+    val supportsBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val blurLayer = rememberGraphicsLayer().apply {
+        renderEffect = if (supportsBlur) {
+            RenderEffect.createBlurEffect(24f, 24f, Shader.TileMode.CLAMP)
+                .asComposeRenderEffect()
+        } else null
+    }
+    val tintColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+        alpha = if (supportsBlur) 0.55f else 0.85f
+    )
+    var position by remember { mutableStateOf(Offset.Zero) }
+
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .onGloballyPositioned { position = it.positionInParent() }
+            .drawBehind {
+                if (backdrop != null) {
+                    blurLayer.record(
+                        size = IntSize(size.width.toInt(), size.height.toInt())
+                    ) {
+                        translate(left = -position.x, top = -position.y) {
+                            drawLayer(backdrop)
+                        }
+                    }
+                    drawLayer(blurLayer)
+                }
+                drawRect(tintColor)
+            },
         shadowElevation = 8.dp,
-        color = MaterialTheme.colorScheme.surfaceVariant
+        color = Color.Transparent
     ) {
         Column {
             LinearProgressIndicator(
