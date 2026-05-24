@@ -24,17 +24,23 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.example.mypodcast.HomeNavKey
 import com.example.mypodcast.LibraryNavKey
 import com.example.mypodcast.PlayerNavKey
 import com.example.mypodcast.QueueNavKey
 import com.example.mypodcast.SearchNavKey
+import com.example.mypodcast.ui.player.BackdropRecorder
+import com.example.mypodcast.ui.player.LocalMiniPlayerInset
 import com.example.mypodcast.ui.player.MiniPlayerBar
 
 @Composable
@@ -46,11 +52,14 @@ fun MainScreen(
 ) {
     val currentRoot = backStack.firstOrNull { it is HomeNavKey || it is SearchNavKey || it is LibraryNavKey || it is QueueNavKey }
 
-    Scaffold(
-        contentWindowInsets = contentWindowInsets,
-        bottomBar = {
-            Column {
-                MiniPlayerBar(onOpenPlayer = { guid -> onNavigate(PlayerNavKey(guid)) })
+    val playerViewModel: MainScreenViewModel = hiltViewModel()
+    val playerState by playerViewModel.playerState.collectAsStateWithLifecycle()
+    val miniPlayerInset = if (playerState.episode != null) 64.dp else 0.dp
+
+    CompositionLocalProvider(LocalMiniPlayerInset provides miniPlayerInset) {
+        Scaffold(
+            contentWindowInsets = contentWindowInsets,
+            bottomBar = {
                 CompactBottomNavigationBar(
                     items = listOf(
                         CompactBottomNavItem(
@@ -92,10 +101,16 @@ fun MainScreen(
                     )
                 )
             }
-        }
-    ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            content()
+        ) { paddingValues ->
+            Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                BackdropRecorder(modifier = Modifier.fillMaxSize()) {
+                    content()
+                }
+                MiniPlayerBar(
+                    onOpenPlayer = { guid -> onNavigate(PlayerNavKey(guid)) },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
         }
     }
 }
