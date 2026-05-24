@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.lazy.LazyColumn
@@ -66,6 +67,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.example.mypodcast.ui.components.LoadingIndicator
 import com.example.mypodcast.ui.components.PodcastEpisodeRow
+import com.example.mypodcast.ui.main.MainScreenViewModel
+import com.example.mypodcast.ui.player.BackdropRecorder
 import com.example.mypodcast.ui.player.LocalMiniPlayerInset
 import com.example.mypodcast.ui.player.MiniPlayerBar
 
@@ -80,12 +83,18 @@ fun PodcastDetailScreen(
     LaunchedEffect(podcastId) { viewModel.load(podcastId) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
+    val playerViewModel: MainScreenViewModel = hiltViewModel()
+    val playerState by playerViewModel.playerState.collectAsStateWithLifecycle()
+    val miniPlayerInset = if (playerState.episode != null) 64.dp else 0.dp
+
+    CompositionLocalProvider(LocalMiniPlayerInset provides miniPlayerInset) {
     Scaffold(
-        bottomBar = { MiniPlayerBar(onOpenPlayer = onEpisodePlay) },
         // Let the hero artwork extend behind the status bar — the hero
         // applies its own statusBarsPadding to the action row.
         contentWindowInsets = WindowInsets(0)
     ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        BackdropRecorder(modifier = Modifier.fillMaxSize()) {
         when {
             state.isLoading && state.podcast == null -> {
                 LoadingIndicator(Modifier.padding(padding))
@@ -99,7 +108,8 @@ fun PodcastDetailScreen(
                 )
             }
             else -> {
-                val podcast = state.podcast ?: return@Scaffold
+                val podcast = state.podcast
+                if (podcast != null) {
                 val pullState = rememberPullToRefreshState()
                 PullToRefreshBox(
                     isRefreshing = state.isRefreshing,
@@ -164,8 +174,18 @@ fun PodcastDetailScreen(
                     }
                     }
                 }
+                }
             }
         }
+        }
+            MiniPlayerBar(
+                onOpenPlayer = onEpisodePlay,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+            )
+        }
+    }
     }
 }
 
