@@ -107,7 +107,10 @@ fun MainScreen(
             }
         ) { paddingValues ->
             Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                BackdropRecorder(modifier = Modifier.fillMaxSize()) {
+                BackdropRecorder(
+                    enabled = hasEpisode,
+                    modifier = Modifier.fillMaxSize()
+                ) {
                     content()
                 }
                 MiniPlayerBar(

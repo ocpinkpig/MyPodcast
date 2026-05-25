@@ -19,3 +19,4 @@ local.properties
 keystore.properties
 *.keystore
 *.jks
+trace_processor

@@ -84,8 +84,12 @@ fun PodcastDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     val playerViewModel: MainScreenViewModel = hiltViewModel()
-    val playerState by playerViewModel.playerState.collectAsStateWithLifecycle()
-    val miniPlayerInset = if (playerState.episode != null) 64.dp else 0.dp
+    // Subscribe ONLY to the narrow "is an episode loaded" flag — the full
+    // playerState ticks every 500ms during playback and would recompose
+    // this entire scaffold (and the wrapping BackdropRecorder, which then
+    // re-records the LazyColumn into a GraphicsLayer) twice per second.
+    val hasEpisode by playerViewModel.hasEpisode.collectAsStateWithLifecycle()
+    val miniPlayerInset = if (hasEpisode) 64.dp else 0.dp
 
     CompositionLocalProvider(LocalMiniPlayerInset provides miniPlayerInset) {
     Scaffold(
@@ -94,7 +98,10 @@ fun PodcastDetailScreen(
         contentWindowInsets = WindowInsets(0)
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-        BackdropRecorder(modifier = Modifier.fillMaxSize()) {
+        BackdropRecorder(
+            enabled = hasEpisode,
+            modifier = Modifier.fillMaxSize()
+        ) {
         when {
             state.isLoading && state.podcast == null -> {
                 LoadingIndicator(Modifier.padding(padding))
@@ -128,11 +135,12 @@ fun PodcastDetailScreen(
                     }
                 ) {
                     CompositionLocalProvider(LocalOverscrollFactory provides null) {
+                    val dividerColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = LocalMiniPlayerInset.current)
                     ) {
-                        item {
+                        item(key = "hero", contentType = "hero") {
                             PodcastHero(
                                 artworkUrl = podcast.artworkUrl,
                                 title = podcast.title,
@@ -144,32 +152,47 @@ fun PodcastDetailScreen(
                                 onSubscribeToggle = { viewModel.toggleSubscription(podcastId) }
                             )
                         }
-                        item {
+                        item(key = "subscribe-bar", contentType = "subscribe-bar") {
                             SubscribeBar(
                                 episodeCount = state.episodes.size,
                                 isSubscribed = state.isSubscribed,
                                 onSubscribeToggle = { viewModel.toggleSubscription(podcastId) }
                             )
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                            )
+                            HorizontalDivider(color = dividerColor)
                         }
-                        items(state.episodes, key = { it.guid }) { episode ->
+                        items(
+                            state.episodes,
+                            key = { it.guid },
+                            contentType = { "episode" }
+                        ) { episode ->
+                            // Stable per-episode callbacks so PodcastEpisodeRow can
+                            // skip recomposition when the screen state changes (e.g.,
+                            // download map updates) but this row's inputs are equal.
+                            val onPlayClick = remember(episode) {
+                                {
+                                    viewModel.playEpisode(episode)
+                                    onEpisodePlay(episode.guid)
+                                }
+                            }
+                            val onDownloadClick = remember(episode) {
+                                { viewModel.downloadEpisode(episode) }
+                            }
+                            val onCancelDownloadClick = remember(episode.guid) {
+                                { viewModel.cancelDownload(episode.guid) }
+                            }
+                            val onDeleteDownloadClick = remember(episode) {
+                                { viewModel.deleteDownload(episode) }
+                            }
                             PodcastEpisodeRow(
                                 episode = episode,
                                 isDownloaded = episode.guid in state.downloadedGuids,
                                 downloadState = state.downloadStates[episode.guid],
-                                onPlayClick = {
-                                    viewModel.playEpisode(episode)
-                                    onEpisodePlay(episode.guid)
-                                },
-                                onDownloadClick = { viewModel.downloadEpisode(episode) },
-                                onCancelDownloadClick = { viewModel.cancelDownload(episode.guid) },
-                                onDeleteDownloadClick = { viewModel.deleteDownload(episode) }
+                                onPlayClick = onPlayClick,
+                                onDownloadClick = onDownloadClick,
+                                onCancelDownloadClick = onCancelDownloadClick,
+                                onDeleteDownloadClick = onDeleteDownloadClick
                             )
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                            )
+                            HorizontalDivider(color = dividerColor)
                         }
                     }
                     }

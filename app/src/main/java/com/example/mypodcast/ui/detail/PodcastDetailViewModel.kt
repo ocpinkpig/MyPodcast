@@ -1,5 +1,6 @@
 package com.example.mypodcast.ui.detail
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mypodcast.domain.model.DownloadState
@@ -23,6 +24,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+// @Immutable: collection fields use mutable interfaces (List/Map/Set) so the
+// Compose compiler treats this class as unstable by default — forcing every
+// consumer to recompose on every state emission. We treat new instances as
+// fully replacing the old (we never mutate the collections in place), so this
+// promise is safe and lets PodcastEpisodeRow skip recomposition when its
+// per-row inputs are unchanged.
+@Immutable
 data class PodcastDetailUiState(
     val podcast: Podcast? = null,
     val episodes: List<Episode> = emptyList(),

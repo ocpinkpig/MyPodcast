@@ -27,24 +27,34 @@ val LocalBackdropLayer = staticCompositionLocalOf<GraphicsLayer?> { null }
 val LocalMiniPlayerInset = compositionLocalOf { 0.dp }
 
 /**
- * Wraps content in a GraphicsLayer recorder. Each frame, the content
- * is recorded into [LocalBackdropLayer] and drawn crisply in place.
- * The MiniPlayer reads the layer and redraws (a clipped portion of) it
- * with a RenderEffect blur applied.
+ * Wraps content in a GraphicsLayer recorder. When [enabled] is true, each
+ * frame the content is recorded into [LocalBackdropLayer] and drawn crisply
+ * in place; the MiniPlayer reads the layer and redraws (a clipped portion
+ * of) it with a RenderEffect blur applied.
+ *
+ * When [enabled] is false (no mini player on screen, so nothing samples
+ * the backdrop), recording is skipped — `drawContent` is issued directly,
+ * avoiding the per-frame display-list capture that otherwise runs over
+ * every visible item of any scrolling list inside the content.
  */
 @Composable
 fun BackdropRecorder(
+    enabled: Boolean,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     val layer = rememberGraphicsLayer()
-    CompositionLocalProvider(LocalBackdropLayer provides layer) {
+    CompositionLocalProvider(LocalBackdropLayer provides if (enabled) layer else null) {
         Box(
             modifier = modifier
                 .fillMaxSize()
                 .drawWithContent {
-                    layer.record { this@drawWithContent.drawContent() }
-                    drawLayer(layer)
+                    if (enabled) {
+                        layer.record { this@drawWithContent.drawContent() }
+                        drawLayer(layer)
+                    } else {
+                        drawContent()
+                    }
                 }
         ) {
             content()
