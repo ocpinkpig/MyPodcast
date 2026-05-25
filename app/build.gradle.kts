@@ -78,6 +78,15 @@ kotlin {
     jvmToolchain(17)
 }
 
+composeCompiler {
+    // Tell the Compose compiler our domain models are stable, so composables
+    // taking them as parameters can actually skip recomposition when inputs
+    // are structurally equal. Without this, sealed interfaces from non-Compose
+    // modules (e.g. DownloadState) are inferred as unstable and defeat
+    // skip-checks across every visible row.
+    stabilityConfigurationFiles.add(layout.projectDirectory.file("compose_compiler_config.conf"))
+}
+
 dependencies {
   val composeBom = platform(libs.androidx.compose.bom)
   implementation(composeBom)
