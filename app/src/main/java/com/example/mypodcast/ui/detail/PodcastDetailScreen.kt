@@ -51,7 +51,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -64,7 +63,12 @@ import androidx.compose.ui.zIndex
 import androidx.core.text.HtmlCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.ColorFilter
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.transformations
+import com.example.mypodcast.ui.components.BlurTransformation
 import com.example.mypodcast.ui.components.LoadingIndicator
 import com.example.mypodcast.ui.components.PodcastEpisodeRow
 import com.example.mypodcast.ui.main.MainScreenViewModel
@@ -190,9 +194,9 @@ fun PodcastDetailScreen(
                                 onPlayClick = onPlayClick,
                                 onDownloadClick = onDownloadClick,
                                 onCancelDownloadClick = onCancelDownloadClick,
-                                onDeleteDownloadClick = onDeleteDownloadClick
+                                onDeleteDownloadClick = onDeleteDownloadClick,
+                                bottomDividerColor = dividerColor
                             )
-                            HorizontalDivider(color = dividerColor)
                         }
                     }
                     }
@@ -226,19 +230,25 @@ private fun PodcastHero(
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
     val context = LocalContext.current
 
+    // Cache the blurred-backdrop ImageRequest so it isn't rebuilt every recompose.
+    val backdropRequest = remember(artworkUrl, context) {
+        ImageRequest.Builder(context)
+            .data(artworkUrl)
+            .transformations(BlurTransformation())
+            .build()
+    }
+    // Folds the 0.18 black tint into the AsyncImage via colorFilter instead of
+    // a separate overlay Box — one fewer composable + draw command per frame.
+    val backdropTint = remember {
+        ColorFilter.tint(Color.Black.copy(alpha = 0.18f), BlendMode.SrcAtop)
+    }
     Box(modifier = Modifier.fillMaxWidth()) {
         AsyncImage(
-            model = artworkUrl,
+            model = backdropRequest,
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .matchParentSize()
-                .blur(40.dp)
-        )
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(Color.Black.copy(alpha = 0.18f))
+            colorFilter = backdropTint,
+            modifier = Modifier.matchParentSize()
         )
 
         CompositionLocalProvider(LocalContentColor provides Color.White) {

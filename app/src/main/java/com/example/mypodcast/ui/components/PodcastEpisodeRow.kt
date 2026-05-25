@@ -3,6 +3,8 @@ package com.example.mypodcast.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,9 +34,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.mypodcast.domain.model.DownloadState
 import com.example.mypodcast.domain.model.Episode
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+// Thread-safe, immutable, allocated once. SimpleDateFormat created per-row was
+// dropping ~3 fresh allocations on every fresh row composition during scroll.
+private val MonthFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("MMM", Locale.getDefault())
+private val DayFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("d", Locale.getDefault())
+private val LocalZone: ZoneId = ZoneId.systemDefault()
 
 @Composable
 fun PodcastEpisodeRow(
@@ -45,7 +56,8 @@ fun PodcastEpisodeRow(
     onDownloadClick: () -> Unit,
     onCancelDownloadClick: () -> Unit,
     onDeleteDownloadClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    bottomDividerColor: Color? = null
 ) {
     val isNew = remember(episode.publishedAt, episode.playbackPosition, episode.isPlayed) {
         episode.publishedAt > 0 &&
@@ -53,9 +65,23 @@ fun PodcastEpisodeRow(
             episode.playbackPosition < ONE_MINUTE_MS &&
             !episode.isPlayed
     }
+    // Drawing the divider directly into the row's background avoids an
+    // additional HorizontalDivider composable per item (one fewer measure
+    // pass and one fewer draw command per row during scroll).
+    val rowModifier = if (bottomDividerColor != null) {
+        modifier.drawBehind {
+            val strokeY = size.height
+            drawLine(
+                color = bottomDividerColor,
+                start = Offset(0f, strokeY),
+                end = Offset(size.width, strokeY),
+                strokeWidth = 1f
+            )
+        }
+    } else modifier
 
     Row(
-        modifier = modifier
+        modifier = rowModifier
             .fillMaxWidth()
             .clickable(onClick = onPlayClick)
             .padding(horizontal = 12.dp, vertical = 14.dp),
@@ -102,9 +128,8 @@ fun PodcastEpisodeRow(
 private fun DateColumn(epochMs: Long, modifier: Modifier = Modifier) {
     val (month, day) = remember(epochMs) {
         if (epochMs > 0) {
-            val date = Date(epochMs)
-            SimpleDateFormat("MMM", Locale.getDefault()).format(date) to
-                SimpleDateFormat("d", Locale.getDefault()).format(date)
+            val date = Instant.ofEpochMilli(epochMs).atZone(LocalZone).toLocalDate()
+            MonthFormatter.format(date) to DayFormatter.format(date)
         } else {
             "" to ""
         }
