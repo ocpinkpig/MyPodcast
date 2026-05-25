@@ -2,14 +2,13 @@ package com.example.mypodcast.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -80,28 +79,27 @@ fun PodcastEpisodeRow(
         }
     } else modifier
 
+    // Use Arrangement.spacedBy instead of Spacer composables — saves three
+    // composables (and three measure passes) per row.
     Row(
         modifier = rowModifier
             .fillMaxWidth()
             .clickable(onClick = onPlayClick)
             .padding(horizontal = 12.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         DateColumn(
             epochMs = episode.publishedAt,
             modifier = Modifier.width(52.dp)
         )
 
-        Spacer(Modifier.width(8.dp))
-
         Row(
             modifier = Modifier.weight(1f),
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            if (isNew) {
-                NewBadge()
-                Spacer(Modifier.width(8.dp))
-            }
+            if (isNew) NewBadge()
             Text(
                 text = episode.title,
                 style = MaterialTheme.typography.bodyMedium,
@@ -109,8 +107,6 @@ fun PodcastEpisodeRow(
                 overflow = TextOverflow.Ellipsis
             )
         }
-
-        Spacer(Modifier.width(8.dp))
 
         ActionColumn(
             isDownloaded = isDownloaded,
@@ -189,7 +185,10 @@ private fun ActionColumn(
         }
     }
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
         when {
             isDownloaded -> CircleIconButton(
                 icon = Icons.Default.PlayArrow,
@@ -218,7 +217,6 @@ private fun ActionColumn(
                 onClick = onDownloadClick
             )
         }
-        Spacer(Modifier.height(2.dp))
         Text(
             text = secondaryLabel,
             style = MaterialTheme.typography.labelSmall,
