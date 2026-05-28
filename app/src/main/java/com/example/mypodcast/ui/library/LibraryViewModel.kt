@@ -44,7 +44,6 @@ sealed interface LibrarySearchResult {
 
 data class LibraryUiState(
     val subscriptions: List<Podcast> = emptyList(),
-    val subscriptionEpisodes: List<Episode> = emptyList(),
     val downloads: List<Episode> = emptyList(),
     val selectedTab: LibraryTab = LibraryTab.SUBSCRIPTIONS,
     val isRefreshingSubscriptions: Boolean = false,
@@ -68,11 +67,12 @@ class LibraryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(LibraryUiState())
     val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
     private val downloadJobs = mutableMapOf<String, Job>()
+    private var subscriptionEpisodes: List<Episode> = emptyList()
 
     init {
         viewModelScope.launch {
             getLibrary.observeSubscriptions().collect { list ->
-                _uiState.update { it.copy(subscriptions = list).withSearchResults() }
+                _uiState.update { it.copy(subscriptions = list).withSearchResults(subscriptionEpisodes) }
             }
         }
         viewModelScope.launch {
@@ -81,7 +81,7 @@ class LibraryViewModel @Inject constructor(
                     it.copy(
                         downloads = list,
                         downloadedGuids = list.map { episode -> episode.guid }.toSet()
-                    ).withSearchResults()
+                    ).withSearchResults(subscriptionEpisodes)
                 }
             }
         }
@@ -99,7 +99,14 @@ class LibraryViewModel @Inject constructor(
                     }
                 }
                 .collect { episodes ->
-                    _uiState.update { it.copy(subscriptionEpisodes = episodes).withSearchResults() }
+                    subscriptionEpisodes = episodes
+                    _uiState.update { state ->
+                        if (state.isSearchActive && state.searchQuery.isNotBlank()) {
+                            state.withSearchResults(subscriptionEpisodes)
+                        } else {
+                            state
+                        }
+                    }
                 }
         }
         viewModelScope.launch {
@@ -123,7 +130,7 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun onSearchQueryChange(query: String) {
-        _uiState.update { it.copy(searchQuery = query).withSearchResults() }
+        _uiState.update { it.copy(searchQuery = query).withSearchResults(subscriptionEpisodes) }
     }
 
     fun refreshSubscriptions() {
@@ -187,7 +194,7 @@ class LibraryViewModel @Inject constructor(
     }
 }
 
-private fun LibraryUiState.withSearchResults(): LibraryUiState {
+private fun LibraryUiState.withSearchResults(subscriptionEpisodes: List<Episode>): LibraryUiState {
     val query = searchQuery.trim()
     if (query.isBlank()) return copy(searchResults = emptyList())
 
