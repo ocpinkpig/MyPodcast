@@ -1,5 +1,8 @@
 package com.example.mypodcast
 
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.navigation3.runtime.NavKey
@@ -21,6 +24,8 @@ fun MainNavigation() {
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
+        transitionSpec = { immediateSceneTransition() },
+        popTransitionSpec = { immediateSceneTransition() },
         entryProvider = entryProvider {
             entry<HomeNavKey> {
                 MainScreen(
@@ -83,6 +88,13 @@ fun MainNavigation() {
         }
     )
 }
+
+private fun immediateSceneTransition(): ContentTransform =
+    ContentTransform(
+        targetContentEnter = EnterTransition.None,
+        initialContentExit = ExitTransition.None,
+        sizeTransform = null
+    )
 
 fun MutableList<NavKey>.navigateTo(key: NavKey) {
     removeAll { it is HomeNavKey || it is SearchNavKey || it is LibraryNavKey || it is QueueNavKey }
