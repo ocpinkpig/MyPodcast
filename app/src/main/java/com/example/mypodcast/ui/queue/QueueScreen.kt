@@ -78,9 +78,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private val QueuePurple = Color(0xFF9B66C6)
-private val QueueDivider = Color.White.copy(alpha = 0.12f)
-private val QueueSecondary = Color.White.copy(alpha = 0.68f)
-private val QueueTertiary = Color.White.copy(alpha = 0.46f)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,7 +114,7 @@ fun QueueScreen(
     }
 
     Scaffold(
-        containerColor = Color.Black,
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = {
@@ -144,9 +141,9 @@ fun QueueScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Black,
-                    titleContentColor = Color.White,
-                    actionIconContentColor = QueueSecondary
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
         }
@@ -154,7 +151,7 @@ fun QueueScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(MaterialTheme.colorScheme.surface)
                 .padding(padding)
         ) {
             QueueTabs(selected = selectedTab, onSelect = { selectedTab = it })
@@ -176,7 +173,7 @@ fun QueueScreen(
                                         onPlay = { viewModel.togglePlayPause() },
                                         onClick = { onEpisodeClick(episode.guid) }
                                     )
-                                    HorizontalDivider(color = QueueDivider)
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                                 }
                                 ReorderableQueueList(
                                     queue = queue,
@@ -211,7 +208,7 @@ fun QueueScreen(
                                         },
                                         showDragHandle = false
                                     )
-                                    HorizontalDivider(color = QueueDivider)
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                                 }
                             }
                         }
@@ -235,7 +232,7 @@ fun QueueScreen(
                                         },
                                         showDragHandle = false
                                     )
-                                    HorizontalDivider(color = QueueDivider)
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                                 }
                             }
                         }
@@ -256,7 +253,7 @@ private enum class QueueTab(val title: String) {
 private fun QueueTabs(selected: QueueTab, onSelect: (QueueTab) -> Unit) {
     PrimaryTabRow(
         selectedTabIndex = selected.ordinal,
-        containerColor = Color.Black,
+        containerColor = MaterialTheme.colorScheme.surface,
         contentColor = QueuePurple
     ) {
         QueueTab.entries.forEach { tab ->
@@ -306,7 +303,7 @@ private fun ReorderableQueueList(
                     onClick = { onEpisodeClick(episode) },
                     dragHandleModifier = Modifier.draggableHandle()
                 )
-                HorizontalDivider(color = QueueDivider)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
 
@@ -360,7 +357,7 @@ private fun SwipeableQueueRow(
             status = null,
             onPlay = onPlay,
             onClick = onClick,
-            modifier = Modifier.background(Color.Black),
+            modifier = Modifier.background(MaterialTheme.colorScheme.surface),
             dragHandleModifier = dragHandleModifier
         )
     }
@@ -368,9 +365,9 @@ private fun SwipeableQueueRow(
     if (pendingRemoval) {
         AlertDialog(
             onDismissRequest = { pendingRemoval = false },
-            containerColor = Color(0xFF1F1F1F),
-            titleContentColor = Color.White,
-            textContentColor = QueueSecondary,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             title = { Text("Remove from queue?") },
             text = {
                 Text("\"${episode.title}\" will be removed from your queue.")
@@ -385,7 +382,7 @@ private fun SwipeableQueueRow(
             },
             dismissButton = {
                 TextButton(onClick = { pendingRemoval = false }) {
-                    Text("Cancel", color = QueueSecondary)
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
@@ -398,7 +395,7 @@ private fun SwipeRemoveBackground() {
         modifier = Modifier
             .fillMaxWidth()
             .height(96.dp)
-            .background(Color(0xFFB00020))
+            .background(MaterialTheme.colorScheme.error)
             .padding(horizontal = 24.dp),
         contentAlignment = Alignment.CenterStart
     ) {
@@ -406,13 +403,13 @@ private fun SwipeRemoveBackground() {
             Icon(
                 imageVector = Icons.Default.Delete,
                 contentDescription = null,
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onError,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(Modifier.width(12.dp))
             Text(
                 text = "Remove",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onError,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold
             )
@@ -450,7 +447,7 @@ private fun QueueEpisodeRow(
         ) {
             Text(
                 text = episode.title,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
@@ -458,7 +455,7 @@ private fun QueueEpisodeRow(
             Spacer(Modifier.height(6.dp))
             Text(
                 text = metadataText(episode, status),
-                color = QueueSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -483,7 +480,7 @@ private fun QueueEpisodeRow(
             Spacer(Modifier.height(6.dp))
             Text(
                 text = formatDuration(episode.durationSeconds).ifBlank { " " },
-                color = QueueSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelSmall,
                 maxLines = 1
             )
@@ -504,13 +501,13 @@ private fun DragHandle(modifier: Modifier = Modifier) {
                     modifier = Modifier
                         .size(4.dp)
                         .clip(CircleShape)
-                        .background(QueueTertiary)
+                        .background(MaterialTheme.colorScheme.outline)
                 )
                 Box(
                     modifier = Modifier
                         .size(4.dp)
                         .clip(CircleShape)
-                        .background(QueueTertiary)
+                        .background(MaterialTheme.colorScheme.outline)
                 )
             }
         }
@@ -522,7 +519,7 @@ private fun Artwork(url: String?) {
     Surface(
         modifier = Modifier.size(64.dp),
         shape = RoundedCornerShape(4.dp),
-        color = Color.White.copy(alpha = 0.08f)
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Box(contentAlignment = Alignment.Center) {
             AsyncImage(
@@ -581,14 +578,14 @@ private fun EmptyMessage(modifier: Modifier, title: String, subtitle: String) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = title,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 text = subtitle,
-                color = QueueSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyLarge
             )
         }

@@ -90,8 +90,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private val LibraryTabPurple = Color(0xFF9B66C6)
-private val LibraryDivider = Color.White.copy(alpha = 0.12f)
-private val LibrarySecondary = Color.White.copy(alpha = 0.68f)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -129,7 +127,7 @@ fun LibraryScreen(
     }
 
     Scaffold(
-        containerColor = Color.Black,
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = {
@@ -143,16 +141,16 @@ fun LibraryScreen(
                             placeholder = {
                                 Text(
                                     text = "Search library",
-                                    color = LibrarySecondary
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             },
                             singleLine = true,
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.White),
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                             leadingIcon = {
                                 Icon(
                                     Icons.Default.Search,
                                     contentDescription = null,
-                                    tint = LibrarySecondary
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             },
                             colors = TextFieldDefaults.colors(
@@ -192,9 +190,9 @@ fun LibraryScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Black,
-                    titleContentColor = Color.White,
-                    actionIconContentColor = LibrarySecondary
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
         }
@@ -202,7 +200,7 @@ fun LibraryScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(MaterialTheme.colorScheme.surface)
                 .padding(padding)
         ) {
             if (state.isSearchActive) {
@@ -222,7 +220,7 @@ fun LibraryScreen(
             } else {
                 PrimaryTabRow(
                     selectedTabIndex = state.selectedTab.ordinal,
-                    containerColor = Color.Black,
+                    containerColor = MaterialTheme.colorScheme.surface,
                     contentColor = LibraryTabPurple
                 ) {
                     tabs.forEach { tab ->
@@ -261,7 +259,7 @@ fun LibraryScreen(
                                         "No subscriptions yet. Find podcasts to follow!",
                                         modifier = Modifier.padding(16.dp),
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = LibrarySecondary
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 } else {
                                     LazyVerticalGrid(
@@ -293,7 +291,7 @@ fun LibraryScreen(
                                     "No downloaded episodes yet.",
                                     modifier = Modifier.padding(16.dp),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = LibrarySecondary
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             } else {
                                 LazyColumn(
@@ -310,7 +308,7 @@ fun LibraryScreen(
                                             showDeleteIcon = true,
                                             onDeleteDownloadClick = { pendingDelete = episode }
                                         )
-                                        HorizontalDivider(color = LibraryDivider)
+                                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                                     }
                                 }
                             }
@@ -388,7 +386,7 @@ private fun LibrarySearchResults(
                         )
                     }
                 }
-                HorizontalDivider(color = LibraryDivider)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
     }
@@ -520,7 +518,7 @@ private fun LibrarySearchRow(
         ) {
             Text(
                 text = title,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
@@ -528,7 +526,7 @@ private fun LibrarySearchRow(
             Spacer(Modifier.height(6.dp))
             Text(
                 text = metadata,
-                color = LibrarySecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -549,7 +547,7 @@ private fun LibrarySearchRow(
             Spacer(Modifier.height(6.dp))
             Text(
                 text = duration,
-                color = LibrarySecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelSmall,
                 maxLines = 1
             )
@@ -562,7 +560,7 @@ private fun Artwork(url: String?, fallbackText: String) {
     Surface(
         modifier = Modifier.size(64.dp),
         shape = RoundedCornerShape(4.dp),
-        color = Color.White.copy(alpha = 0.08f)
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Box(contentAlignment = Alignment.Center) {
             AsyncImage(
@@ -594,14 +592,14 @@ private fun EmptyMessage(modifier: Modifier, title: String, subtitle: String) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = title,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 text = subtitle,
-                color = LibrarySecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyLarge
             )
         }
