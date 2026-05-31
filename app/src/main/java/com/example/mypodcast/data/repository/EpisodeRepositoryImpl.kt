@@ -118,7 +118,9 @@ class EpisodeRepositoryImpl @Inject constructor(
         artworkUrl = artworkUrl,
         publishedAt = publishedAt,
         durationSeconds = durationSeconds,
-        fileSizeBytes = fileSizeBytes
+        fileSizeBytes = fileSizeBytes,
+        transcriptUrl = transcriptUrl,
+        transcriptType = transcriptType
     )
 
     private fun EpisodeEntity.toDomain(podcastArtworkFallback: String?) = Episode(
@@ -133,6 +135,8 @@ class EpisodeRepositoryImpl @Inject constructor(
         fileSizeBytes = fileSizeBytes,
         playbackPosition = playbackPosition,
         isPlayed = isPlayed,
-        isFavorite = isFavorite
+        isFavorite = isFavorite,
+        transcriptUrl = transcriptUrl,
+        transcriptType = transcriptType
     )
 }

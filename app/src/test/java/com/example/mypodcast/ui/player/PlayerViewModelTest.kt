@@ -3,6 +3,7 @@ package com.example.mypodcast.ui.player
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.PlayerState
 import com.example.mypodcast.domain.repository.PlayerRepository
+import com.example.mypodcast.domain.usecase.episode.GetTranscriptUseCase
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +22,7 @@ class PlayerViewModelTest {
                 isPlaying = true
             )
         )
-        val viewModel = PlayerViewModel(repository)
+        val viewModel = PlayerViewModel(repository, GetTranscriptUseCase(FakeTranscriptRepository()))
 
         viewModel.playPause("preview")
 
@@ -40,7 +41,7 @@ class PlayerViewModelTest {
                 isPlaying = true
             )
         )
-        val viewModel = PlayerViewModel(repository)
+        val viewModel = PlayerViewModel(repository, GetTranscriptUseCase(FakeTranscriptRepository()))
 
         viewModel.playPause("current")
 
@@ -52,7 +53,7 @@ class PlayerViewModelTest {
     fun toggleFavorite_favoritesCurrentEpisode() {
         val currentEpisode = episode("current", isFavorite = false)
         val repository = FakePlayerRepository(PlayerState(episode = currentEpisode))
-        val viewModel = PlayerViewModel(repository)
+        val viewModel = PlayerViewModel(repository, GetTranscriptUseCase(FakeTranscriptRepository()))
 
         viewModel.toggleFavorite()
 
@@ -64,7 +65,7 @@ class PlayerViewModelTest {
     fun toggleFavorite_unfavoritesCurrentEpisode() {
         val currentEpisode = episode("current", isFavorite = true)
         val repository = FakePlayerRepository(PlayerState(episode = currentEpisode))
-        val viewModel = PlayerViewModel(repository)
+        val viewModel = PlayerViewModel(repository, GetTranscriptUseCase(FakeTranscriptRepository()))
 
         viewModel.toggleFavorite()
 
@@ -76,7 +77,7 @@ class PlayerViewModelTest {
     fun addToQueue_enqueuesCurrentEpisode() {
         val currentEpisode = episode("current")
         val repository = FakePlayerRepository(PlayerState(episode = currentEpisode))
-        val viewModel = PlayerViewModel(repository)
+        val viewModel = PlayerViewModel(repository, GetTranscriptUseCase(FakeTranscriptRepository()))
 
         viewModel.addToQueue()
 
@@ -99,7 +100,7 @@ class PlayerViewModelTest {
         episode(guid).copy(isFavorite = isFavorite)
 }
 
-private class FakePlayerRepository(initialState: PlayerState) : PlayerRepository {
+internal class FakePlayerRepository(initialState: PlayerState) : PlayerRepository {
     override val playerState: StateFlow<PlayerState> = MutableStateFlow(initialState)
     var playedEpisode: Episode? = null
     var paused = false

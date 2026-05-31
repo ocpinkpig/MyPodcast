@@ -95,6 +95,11 @@ fun PlayerScreen(
 ) {
     val state by viewModel.playerState.collectAsStateWithLifecycle()
     val displayState = state.asPlayerScreenState(episodeGuid)
+    val transcriptState by viewModel.transcriptState.collectAsStateWithLifecycle()
+    val transcriptEpisode = displayState.episode
+    LaunchedEffect(transcriptEpisode?.guid, transcriptEpisode?.transcriptUrl) {
+        viewModel.loadTranscript(transcriptEpisode)
+    }
     var showSpeedSheet by remember { mutableStateOf(false) }
     var showSleepTimerSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -155,6 +160,7 @@ fun PlayerScreen(
     ) { padding ->
         PlayerPager(
             state = displayState,
+            transcriptState = transcriptState,
             contentPadding = padding,
             onSeek = viewModel::seekTo,
             onPlayPause = { viewModel.playPause(episodeGuid) },
@@ -163,7 +169,8 @@ fun PlayerScreen(
             onSpeedClick = { showSpeedSheet = true },
             onSleepTimerClick = { showSleepTimerSheet = true },
             onFavoriteClick = { viewModel.toggleFavorite(episodeGuid) },
-            onAddToQueueClick = { viewModel.addToQueue(episodeGuid) }
+            onAddToQueueClick = { viewModel.addToQueue(episodeGuid) },
+            onRetryTranscript = { viewModel.retryTranscript(transcriptEpisode) }
         )
     }
 
@@ -197,6 +204,7 @@ fun PlayerScreen(
 @Composable
 private fun PlayerPager(
     state: PlayerState,
+    transcriptState: TranscriptUiState,
     contentPadding: PaddingValues,
     onSeek: (Long) -> Unit,
     onPlayPause: () -> Unit,
@@ -205,9 +213,10 @@ private fun PlayerPager(
     onSpeedClick: () -> Unit,
     onSleepTimerClick: () -> Unit,
     onFavoriteClick: () -> Unit,
-    onAddToQueueClick: () -> Unit
+    onAddToQueueClick: () -> Unit,
+    onRetryTranscript: () -> Unit
 ) {
-    val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
+    val pagerState = rememberPagerState(initialPage = 0, pageCount = { 3 })
 
     Column(
         modifier = Modifier
@@ -237,12 +246,24 @@ private fun PlayerPager(
                     onSkipBack = onSkipBack,
                     onSkipForward = onSkipForward
                 )
+                2 -> TranscriptPage(
+                    transcriptState = transcriptState,
+                    positionMs = state.positionMs,
+                    durationMs = state.durationMs,
+                    isPlaying = state.isPlaying,
+                    isBuffering = state.isBuffering,
+                    onSeek = onSeek,
+                    onPlayPause = onPlayPause,
+                    onSkipBack = onSkipBack,
+                    onSkipForward = onSkipForward,
+                    onRetry = onRetryTranscript
+                )
             }
         }
 
         PageIndicator(
             selectedPage = pagerState.currentPage,
-            pageCount = 2,
+            pageCount = 3,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 12.dp)
@@ -557,7 +578,7 @@ private fun StatusPill(
 private val FavoriteRed = Color(0xFFE53935)
 
 @Composable
-private fun PlayerProgress(
+internal fun PlayerProgress(
     positionMs: Long,
     durationMs: Long,
     onSeek: (Long) -> Unit,
@@ -642,7 +663,7 @@ private fun PrimaryPlaybackControls(
 }
 
 @Composable
-private fun CompactPlaybackControls(
+internal fun CompactPlaybackControls(
     isPlaying: Boolean,
     isBuffering: Boolean,
     onPlayPause: () -> Unit,
