@@ -3,6 +3,8 @@ package com.example.mypodcast.data.remote.rss
 import android.util.Xml
 import com.example.mypodcast.data.remote.rss.model.RssFeed
 import com.example.mypodcast.data.remote.rss.model.RssEpisode
+import com.example.mypodcast.data.remote.transcript.TranscriptRef
+import com.example.mypodcast.data.remote.transcript.selectBestTranscript
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -50,6 +52,7 @@ class RssParser @Inject constructor(private val okHttpClient: OkHttpClient) {
         var publishedAt = 0L
         var durationSeconds = 0
         var fileSizeBytes = 0L
+        val transcriptRefs = mutableListOf<TranscriptRef>()
 
         var eventType = parser.eventType
         while (eventType != XmlPullParser.END_DOCUMENT) {
@@ -64,6 +67,19 @@ class RssParser @Inject constructor(private val okHttpClient: OkHttpClient) {
                             descriptionBuf.clear(); contentEncodedBuf.clear(); itunesSummaryBuf.clear()
                             audioUrl = ""; artworkUrl = null
                             publishedAt = 0L; durationSeconds = 0; fileSizeBytes = 0L
+                            transcriptRefs.clear()
+                        }
+                        tag == "podcast:transcript" && inItem -> {
+                            val url = parser.getAttributeValue(null, "url")
+                            if (!url.isNullOrBlank()) {
+                                transcriptRefs.add(
+                                    TranscriptRef(
+                                        url = url,
+                                        type = parser.getAttributeValue(null, "type"),
+                                        language = parser.getAttributeValue(null, "language")
+                                    )
+                                )
+                            }
                         }
                         tag == "image" && !inItem -> inImage = true
                         tag == "enclosure" && inItem -> {
@@ -112,6 +128,7 @@ class RssParser @Inject constructor(private val okHttpClient: OkHttpClient) {
                                     descriptionBuf.toString().trim(),
                                     itunesSummaryBuf.toString().trim()
                                 ).firstOrNull { it.isNotEmpty() }
+                                val transcript = selectBestTranscript(transcriptRefs)
                                 episodes.add(
                                     RssEpisode(
                                         guid = guid.ifBlank { audioUrl },
@@ -121,7 +138,9 @@ class RssParser @Inject constructor(private val okHttpClient: OkHttpClient) {
                                         artworkUrl = artworkUrl,
                                         publishedAt = publishedAt,
                                         durationSeconds = durationSeconds,
-                                        fileSizeBytes = fileSizeBytes
+                                        fileSizeBytes = fileSizeBytes,
+                                        transcriptUrl = transcript?.url,
+                                        transcriptType = transcript?.type
                                     )
                                 )
                             }

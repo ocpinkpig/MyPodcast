@@ -28,5 +28,7 @@ data class EpisodeEntity(
     val playbackPosition: Long = 0L,
     val isPlayed: Boolean = false,
     val isFavorite: Boolean = false,
-    val lastPlayedAt: Long = 0L
+    val lastPlayedAt: Long = 0L,
+    val transcriptUrl: String? = null,
+    val transcriptType: String? = null
 )

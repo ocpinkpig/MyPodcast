@@ -15,5 +15,7 @@ data class RssEpisode(
     val artworkUrl: String?,
     val publishedAt: Long,
     val durationSeconds: Int,
-    val fileSizeBytes: Long
+    val fileSizeBytes: Long,
+    val transcriptUrl: String? = null,
+    val transcriptType: String? = null
 )

@@ -12,5 +12,7 @@ data class Episode(
     val fileSizeBytes: Long,
     val playbackPosition: Long = 0L,
     val isPlayed: Boolean = false,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val transcriptUrl: String? = null,
+    val transcriptType: String? = null
 )
