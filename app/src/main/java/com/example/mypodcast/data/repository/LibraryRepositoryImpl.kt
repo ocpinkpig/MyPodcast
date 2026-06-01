@@ -87,7 +87,7 @@ class LibraryRepositoryImpl @Inject constructor(
                             isPlayed = e.isPlayed,
                             isFavorite = e.isFavorite
                         )
-                    }
+                    }.sortedByDescending { it.publishedAt }
                 }
             }
         }
