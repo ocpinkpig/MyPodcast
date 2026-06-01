@@ -9,15 +9,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -85,8 +86,9 @@ fun MainScreen(
                             }
                         ),
                         CompactBottomNavItem(
-                            icon = Icons.Default.LibraryMusic,
+                            icon = LibraryShelfIcon,
                             contentDescription = "Library",
+                            iconOffsetY = (-1.5).dp,
                             selected = currentRoot is LibraryNavKey,
                             onClick = {
                                 backStack.clear()
@@ -94,8 +96,9 @@ fun MainScreen(
                             }
                         ),
                         CompactBottomNavItem(
-                            icon = Icons.Default.QueueMusic,
+                            icon = Icons.AutoMirrored.Filled.QueueMusic,
                             contentDescription = "Queue",
+                            iconOffsetY = (-1.5).dp,
                             selected = currentRoot is QueueNavKey,
                             onClick = {
                                 backStack.clear()
@@ -125,6 +128,7 @@ fun MainScreen(
 private data class CompactBottomNavItem(
     val icon: ImageVector,
     val contentDescription: String,
+    val iconOffsetY: Dp = 0.dp,
     val selected: Boolean,
     val onClick: () -> Unit
 )
@@ -158,7 +162,9 @@ private fun CompactBottomNavigationBar(items: List<CompactBottomNavItem>) {
                         Icon(
                             imageVector = item.icon,
                             contentDescription = item.contentDescription,
-                            modifier = Modifier.size(22.dp),
+                            modifier = Modifier
+                                .size(22.dp)
+                                .offset(y = item.iconOffsetY),
                             tint = if (item.selected) {
                                 MaterialTheme.colorScheme.primary
                             } else {
