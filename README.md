@@ -6,7 +6,7 @@ A modern Android podcast player, built from scratch with Jetpack Compose, Media3
 
 Grab the latest signed APK from the **[Releases page](https://github.com/ocpinkpig/MyPodcast/releases/latest)**, or download directly:
 
-- [MyPodcast-v1.0.0.apk](https://github.com/ocpinkpig/MyPodcast/releases/download/v1.0.0/MyPodcast-v1.0.0.apk) — Android 8.0+ (API 26+)
+- [MyPodcast-v1.0.2.apk](https://github.com/ocpinkpig/MyPodcast/releases/download/v1.0.2/MyPodcast-v1.0.2.apk) — Android 8.0+ (API 26+)
 
 ### Install
 
