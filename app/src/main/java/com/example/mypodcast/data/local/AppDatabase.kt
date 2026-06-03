@@ -7,11 +7,13 @@ import com.example.mypodcast.data.local.dao.EpisodeDao
 import com.example.mypodcast.data.local.dao.PodcastDao
 import com.example.mypodcast.data.local.dao.SubscriptionDao
 import com.example.mypodcast.data.local.dao.QueueDao
+import com.example.mypodcast.data.local.dao.SavedMomentDao
 import com.example.mypodcast.data.local.entity.DownloadedEpisodeEntity
 import com.example.mypodcast.data.local.entity.EpisodeEntity
 import com.example.mypodcast.data.local.entity.PodcastEntity
 import com.example.mypodcast.data.local.entity.SubscriptionEntity
 import com.example.mypodcast.data.local.entity.QueueItemEntity
+import com.example.mypodcast.data.local.entity.SavedMomentEntity
 
 @Database(
     entities = [
@@ -19,9 +21,10 @@ import com.example.mypodcast.data.local.entity.QueueItemEntity
         EpisodeEntity::class,
         SubscriptionEntity::class,
         DownloadedEpisodeEntity::class,
-        QueueItemEntity::class
+        QueueItemEntity::class,
+        SavedMomentEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -30,6 +33,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun subscriptionDao(): SubscriptionDao
     abstract fun downloadedEpisodeDao(): DownloadedEpisodeDao
     abstract fun queueDao(): QueueDao
+    abstract fun savedMomentDao(): SavedMomentDao
 }
-
 

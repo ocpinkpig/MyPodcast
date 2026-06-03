@@ -40,3 +40,22 @@ internal val MIGRATION_5_6: Migration = object : Migration(5, 6) {
         db.execSQL("ALTER TABLE episodes ADD COLUMN transcriptType TEXT")
     }
 }
+
+internal val MIGRATION_6_7: Migration = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS saved_moments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                episodeGuid TEXT NOT NULL,
+                positionMs INTEGER NOT NULL,
+                clipStartMs INTEGER NOT NULL,
+                clipEndMs INTEGER NOT NULL,
+                transcriptText TEXT,
+                createdAt INTEGER NOT NULL,
+                FOREIGN KEY(episodeGuid) REFERENCES episodes(guid) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+        """.trimIndent())
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_saved_moments_episodeGuid ON saved_moments(episodeGuid)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_saved_moments_createdAt ON saved_moments(createdAt)")
+    }
+}

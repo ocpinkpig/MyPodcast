@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.Podcast
+import com.example.mypodcast.domain.model.SavedMoment
 import com.example.mypodcast.domain.repository.EpisodeRepository
 import com.example.mypodcast.domain.repository.LibraryRepository
 import com.example.mypodcast.domain.repository.PlayerRepository
+import com.example.mypodcast.domain.repository.SavedMomentRepository
 import com.example.mypodcast.domain.model.DownloadState
 import com.example.mypodcast.domain.usecase.episode.DownloadEpisodeUseCase
 import com.example.mypodcast.domain.usecase.library.GetLibraryUseCase
@@ -26,8 +28,9 @@ import javax.inject.Inject
 private const val SEVEN_DAYS_MS = 7L * 24 * 60 * 60 * 1000
 
 enum class LibraryTab(val title: String) {
-    SUBSCRIPTIONS("Subscriptions"),
-    DOWNLOADS("Downloads")
+    SUBSCRIPTIONS("Shows"),
+    DOWNLOADS("Downloads"),
+    MOMENTS("Moments")
 }
 
 sealed interface LibrarySearchResult {
@@ -45,6 +48,7 @@ sealed interface LibrarySearchResult {
 data class LibraryUiState(
     val subscriptions: List<Podcast> = emptyList(),
     val downloads: List<Episode> = emptyList(),
+    val savedMoments: List<SavedMoment> = emptyList(),
     val selectedTab: LibraryTab = LibraryTab.SUBSCRIPTIONS,
     val isRefreshingSubscriptions: Boolean = false,
     val newEpisodeCounts: Map<Long, Int> = emptyMap(),
@@ -60,6 +64,7 @@ class LibraryViewModel @Inject constructor(
     private val getLibrary: GetLibraryUseCase,
     private val libraryRepository: LibraryRepository,
     private val episodeRepository: EpisodeRepository,
+    private val savedMomentRepository: SavedMomentRepository,
     private val downloadEpisodeUseCase: DownloadEpisodeUseCase,
     private val playerRepository: PlayerRepository
 ) : ViewModel() {
@@ -83,6 +88,11 @@ class LibraryViewModel @Inject constructor(
                         downloadedGuids = list.map { episode -> episode.guid }.toSet()
                     ).withSearchResults(subscriptionEpisodes)
                 }
+            }
+        }
+        viewModelScope.launch {
+            savedMomentRepository.observeSavedMoments().collect { moments ->
+                _uiState.update { it.copy(savedMoments = moments) }
             }
         }
         @OptIn(ExperimentalCoroutinesApi::class)
@@ -157,8 +167,16 @@ class LibraryViewModel @Inject constructor(
      */
     fun playEpisode(episode: Episode) = playerRepository.prepare(episode)
 
+    fun playMoment(moment: SavedMoment) {
+        playerRepository.play(moment.episode.copy(playbackPosition = moment.positionMs))
+    }
+
     fun deleteDownload(episode: Episode) {
         viewModelScope.launch { libraryRepository.deleteDownload(episode.guid) }
+    }
+
+    fun deleteMoment(moment: SavedMoment) {
+        viewModelScope.launch { savedMomentRepository.deleteMoment(moment.id) }
     }
 
     fun downloadEpisode(episode: Episode) {

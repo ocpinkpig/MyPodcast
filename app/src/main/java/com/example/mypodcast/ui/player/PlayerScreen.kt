@@ -32,6 +32,8 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -85,6 +87,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.example.mypodcast.domain.model.PlayerState
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flowOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,6 +105,11 @@ fun PlayerScreen(
     }
     var showSpeedSheet by remember { mutableStateOf(false) }
     var showSleepTimerSheet by remember { mutableStateOf(false) }
+    val hasSavedMoments by remember(transcriptEpisode?.guid) {
+        transcriptEpisode?.guid
+            ?.let(viewModel::observeHasSavedMoments)
+            ?: flowOf(false)
+    }.collectAsStateWithLifecycle(initialValue = false)
     val context = LocalContext.current
     val shareEpisode = displayState.episode
     val canShare = shareEpisode != null
@@ -170,6 +178,8 @@ fun PlayerScreen(
             onSleepTimerClick = { showSleepTimerSheet = true },
             onFavoriteClick = { viewModel.toggleFavorite(episodeGuid) },
             onAddToQueueClick = { viewModel.addToQueue(episodeGuid) },
+            onSaveMomentClick = { viewModel.saveMoment(episodeGuid) },
+            hasSavedMoments = hasSavedMoments,
             onRetryTranscript = { viewModel.retryTranscript(transcriptEpisode) }
         )
     }
@@ -214,6 +224,8 @@ private fun PlayerPager(
     onSleepTimerClick: () -> Unit,
     onFavoriteClick: () -> Unit,
     onAddToQueueClick: () -> Unit,
+    onSaveMomentClick: () -> Unit,
+    hasSavedMoments: Boolean,
     onRetryTranscript: () -> Unit
 ) {
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { 3 })
@@ -237,7 +249,9 @@ private fun PlayerPager(
                     onSpeedClick = onSpeedClick,
                     onSleepTimerClick = onSleepTimerClick,
                     onFavoriteClick = onFavoriteClick,
-                    onAddToQueueClick = onAddToQueueClick
+                    onAddToQueueClick = onAddToQueueClick,
+                    onSaveMomentClick = onSaveMomentClick,
+                    hasSavedMoments = hasSavedMoments
                 )
                 1 -> ShowNotesPage(
                     state = state,
@@ -297,16 +311,17 @@ private fun PlaybackPage(
     onSpeedClick: () -> Unit,
     onSleepTimerClick: () -> Unit,
     onFavoriteClick: () -> Unit,
-    onAddToQueueClick: () -> Unit
+    onAddToQueueClick: () -> Unit,
+    onSaveMomentClick: () -> Unit,
+    hasSavedMoments: Boolean
 ) {
     val episode = state.episode
-    var showQueueFeedback by remember { mutableStateOf(false) }
-    var queueFeedbackKey by remember { mutableStateOf(0) }
+    var feedback by remember { mutableStateOf<PlayerFeedback?>(null) }
 
-    LaunchedEffect(queueFeedbackKey) {
-        if (queueFeedbackKey > 0) {
+    LaunchedEffect(feedback) {
+        if (feedback != null) {
             delay(1_500)
-            showQueueFeedback = false
+            feedback = null
         }
     }
 
@@ -344,20 +359,22 @@ private fun PlaybackPage(
             )
 
             PlayerStatusChips(
-                speed = state.speed,
-                sleepTimerRemainingMs = state.sleepTimerRemainingMs,
                 isDownloaded = episode?.audioUrl?.startsWith("/") == true,
                 isFavorite = episode?.isFavorite == true,
                 favoriteEnabled = episode != null,
                 onFavoriteClick = onFavoriteClick,
                 onAddToQueueClick = {
                     onAddToQueueClick()
-                    showQueueFeedback = true
-                    queueFeedbackKey += 1
-                }
+                    feedback = PlayerFeedback.Queue
+                },
+                onSaveMomentClick = {
+                    onSaveMomentClick()
+                    feedback = PlayerFeedback.Moment
+                },
+                hasSavedMoments = hasSavedMoments
             )
 
-            QueueAddedFeedback(visible = showQueueFeedback)
+            PlayerActionFeedback(feedback = feedback)
 
             if (state.error != null) {
                 Text(
@@ -416,7 +433,21 @@ private fun PlaybackPage(
 }
 
 @Composable
-private fun QueueAddedFeedback(visible: Boolean) {
+private fun PlayerActionFeedback(feedback: PlayerFeedback?) {
+    val isMoment = feedback == PlayerFeedback.Moment
+    val icon = if (isMoment) Icons.Default.Bookmark else Icons.AutoMirrored.Filled.QueueMusic
+    val label = if (isMoment) "Moment saved" else "Added to queue"
+    val containerColor = if (isMoment) {
+        MaterialTheme.colorScheme.tertiaryContainer
+    } else {
+        MaterialTheme.colorScheme.primaryContainer
+    }
+    val contentColor = if (isMoment) {
+        MaterialTheme.colorScheme.onTertiaryContainer
+    } else {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -424,14 +455,14 @@ private fun QueueAddedFeedback(visible: Boolean) {
         contentAlignment = Alignment.Center
     ) {
         AnimatedVisibility(
-            visible = visible,
+            visible = feedback != null,
             enter = fadeIn() + slideInVertically { it / 2 },
             exit = fadeOut() + slideOutVertically { it / 2 }
         ) {
             Surface(
                 shape = RoundedCornerShape(50),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                color = containerColor,
+                contentColor = contentColor
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
@@ -439,12 +470,12 @@ private fun QueueAddedFeedback(visible: Boolean) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                        imageVector = icon,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "Added to queue",
+                        text = label,
                         style = MaterialTheme.typography.labelMedium,
                         maxLines = 1
                     )
@@ -454,16 +485,21 @@ private fun QueueAddedFeedback(visible: Boolean) {
     }
 }
 
+private enum class PlayerFeedback {
+    Queue,
+    Moment
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PlayerStatusChips(
-    speed: Float,
-    sleepTimerRemainingMs: Long,
     isDownloaded: Boolean,
     isFavorite: Boolean,
     favoriteEnabled: Boolean,
     onFavoriteClick: () -> Unit,
-    onAddToQueueClick: () -> Unit
+    onAddToQueueClick: () -> Unit,
+    onSaveMomentClick: () -> Unit,
+    hasSavedMoments: Boolean
 ) {
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
@@ -476,14 +512,6 @@ private fun PlayerStatusChips(
                 label = "Downloaded"
             )
         }
-        StatusPill(
-            icon = Icons.Default.GraphicEq,
-            label = formatSpeedLabel(speed)
-        )
-        StatusPill(
-            icon = Icons.Default.Timer,
-            label = formatSleepTimerLabel(sleepTimerRemainingMs)
-        )
         FavoritePill(
             isFavorite = isFavorite,
             enabled = favoriteEnabled,
@@ -492,6 +520,11 @@ private fun PlayerStatusChips(
         QueuePill(
             enabled = favoriteEnabled,
             onClick = onAddToQueueClick
+        )
+        SaveMomentPill(
+            enabled = favoriteEnabled,
+            hasSavedMoments = hasSavedMoments,
+            onClick = onSaveMomentClick
         )
     }
 }
@@ -545,6 +578,34 @@ private fun QueuePill(
 }
 
 @Composable
+private fun SaveMomentPill(
+    enabled: Boolean,
+    hasSavedMoments: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = if (hasSavedMoments) SavedMomentGreen else MaterialTheme.colorScheme.tertiary,
+        modifier = Modifier.size(36.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = if (hasSavedMoments) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                contentDescription = if (hasSavedMoments) {
+                    "Episode has saved moments"
+                } else {
+                    "Save moment"
+                },
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+@Composable
 private fun StatusPill(
     icon: ImageVector,
     label: String,
@@ -576,6 +637,7 @@ private fun StatusPill(
 }
 
 private val FavoriteRed = Color(0xFFE53935)
+private val SavedMomentGreen = Color(0xFF2E7D32)
 
 @Composable
 internal fun PlayerProgress(

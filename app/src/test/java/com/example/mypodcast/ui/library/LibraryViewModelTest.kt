@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.Podcast
+import com.example.mypodcast.domain.model.SavedMoment
 import com.example.mypodcast.domain.repository.EpisodeRepository
 import com.example.mypodcast.domain.repository.LibraryRepository
 import com.example.mypodcast.domain.repository.PlayerRepository
+import com.example.mypodcast.domain.repository.SavedMomentRepository
 import com.example.mypodcast.domain.usecase.episode.DownloadEpisodeUseCase
 import com.example.mypodcast.domain.usecase.library.GetLibraryUseCase
 import junit.framework.TestCase.assertEquals
@@ -53,6 +55,7 @@ class LibraryViewModelTest {
             getLibrary = GetLibraryUseCase(libraryRepository),
             libraryRepository = libraryRepository,
             episodeRepository = episodeRepository,
+            savedMomentRepository = FakeSavedMomentRepository(),
             downloadEpisodeUseCase = downloadEpisodeUseCase(libraryRepository),
             playerRepository = FakePlayerRepository()
         )
@@ -76,6 +79,7 @@ class LibraryViewModelTest {
                 existingEpisodes = emptyMap(),
                 fetchedEpisodes = emptyMap()
             ),
+            savedMomentRepository = FakeSavedMomentRepository(),
             downloadEpisodeUseCase = downloadEpisodeUseCase(libraryRepository),
             playerRepository = FakePlayerRepository()
         )
@@ -104,6 +108,7 @@ class LibraryViewModelTest {
                 existingEpisodes = emptyMap(),
                 fetchedEpisodes = emptyMap()
             ),
+            savedMomentRepository = FakeSavedMomentRepository(),
             downloadEpisodeUseCase = downloadEpisodeUseCase(libraryRepository),
             playerRepository = FakePlayerRepository()
         )
@@ -130,6 +135,7 @@ class LibraryViewModelTest {
                 existingEpisodes = mapOf(1L to listOf(episode)),
                 fetchedEpisodes = emptyMap()
             ),
+            savedMomentRepository = FakeSavedMomentRepository(),
             downloadEpisodeUseCase = downloadEpisodeUseCase(libraryRepository),
             playerRepository = FakePlayerRepository()
         )
@@ -232,6 +238,23 @@ private class FakeEpisodeRepository(
     override suspend fun touchLastPlayed(guid: String, ts: Long) = Unit
     override fun observeNewEpisodeCounts(threshold: Long): Flow<Map<Long, Int>> =
         flowOf(newEpisodeCounts)
+}
+
+private class FakeSavedMomentRepository(
+    private val moments: List<SavedMoment> = emptyList()
+) : SavedMomentRepository {
+    override fun observeSavedMoments(): Flow<List<SavedMoment>> = flowOf(moments)
+    override fun observeHasSavedMoments(episodeGuid: String): Flow<Boolean> = flowOf(false)
+
+    override suspend fun saveMoment(
+        episode: Episode,
+        positionMs: Long,
+        clipStartMs: Long,
+        clipEndMs: Long,
+        transcriptText: String?
+    ) = Unit
+
+    override suspend fun deleteMoment(id: Long) = Unit
 }
 
 private class FakePlayerRepository : PlayerRepository {

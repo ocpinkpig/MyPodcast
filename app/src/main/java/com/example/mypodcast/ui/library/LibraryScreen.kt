@@ -29,6 +29,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
@@ -80,6 +82,8 @@ import coil3.compose.AsyncImage
 import com.example.mypodcast.domain.model.DownloadState
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.Podcast
+import com.example.mypodcast.domain.model.SavedMoment
+import com.example.mypodcast.ui.components.CircleIconButton
 import com.example.mypodcast.ui.components.EpisodeListItem
 import com.example.mypodcast.ui.components.PodcastCard
 import com.example.mypodcast.ui.components.PodcastCardGridDefaults
@@ -227,7 +231,13 @@ fun LibraryScreen(
                         Tab(
                             selected = state.selectedTab == tab,
                             onClick = { viewModel.selectTab(tab) },
-                            text = { Text(tab.title) },
+                            text = {
+                                Text(
+                                    text = tab.title,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            },
                             selectedContentColor = LibraryTabPurple,
                             unselectedContentColor = LibraryTabPurple.copy(alpha = 0.72f)
                         )
@@ -313,6 +323,32 @@ fun LibraryScreen(
                                 }
                             }
                         }
+                        LibraryTab.MOMENTS -> {
+                            if (state.savedMoments.isEmpty()) {
+                                EmptyMessage(
+                                    modifier = Modifier.fillMaxSize(),
+                                    title = "No saved moments yet",
+                                    subtitle = "Tap the bookmark on the player when something resonates."
+                                )
+                            } else {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(bottom = LocalMiniPlayerInset.current)
+                                ) {
+                                    items(state.savedMoments, key = { it.id }) { moment ->
+                                        SavedMomentRow(
+                                            moment = moment,
+                                            onPlay = {
+                                                viewModel.playMoment(moment)
+                                                onEpisodePlay(moment.episode.guid)
+                                            },
+                                            onDelete = { viewModel.deleteMoment(moment) }
+                                        )
+                                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -337,6 +373,76 @@ fun LibraryScreen(
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
             }
+        )
+    }
+}
+
+@Composable
+private fun SavedMomentRow(
+    moment: SavedMoment,
+    onPlay: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onPlay)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Artwork(url = moment.episode.artworkUrl, fallbackText = "P")
+        Spacer(Modifier.width(12.dp))
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Bookmark,
+                    contentDescription = null,
+                    tint = LibraryTabPurple,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = formatMomentTime(moment.positionMs),
+                    color = LibraryTabPurple,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Spacer(Modifier.height(5.dp))
+            Text(
+                text = moment.episode.title,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            val excerpt = moment.transcriptText?.takeIf { it.isNotBlank() }
+            if (excerpt != null) {
+                Spacer(Modifier.height(5.dp))
+                Text(
+                    text = excerpt,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+        IconButton(onClick = onDelete) {
+            Icon(
+                Icons.Default.Delete,
+                contentDescription = "Delete saved moment",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        CircleIconButton(
+            icon = Icons.Default.PlayArrow,
+            contentDescription = "Replay saved moment",
+            onClick = onPlay
         )
     }
 }
@@ -637,5 +743,18 @@ private fun formatDuration(seconds: Int): String {
         hours > 0 && minutes > 0 -> "${hours}h ${minutes}m"
         hours > 0 -> "${hours}h"
         else -> "${minutes.coerceAtLeast(1)}min"
+    }
+}
+
+private fun formatMomentTime(positionMs: Long): String {
+    val totalSeconds = (positionMs.coerceAtLeast(0L) / 1000L).toInt()
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    return if (hours > 0) {
+        "%d:%02d:%02d".format(Locale.ROOT, hours, minutes, seconds)
+    } else {
+        "%d:%02d".format(Locale.ROOT, minutes, seconds)
     }
 }

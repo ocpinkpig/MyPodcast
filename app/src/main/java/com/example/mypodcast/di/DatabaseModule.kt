@@ -8,6 +8,7 @@ import com.example.mypodcast.data.local.MIGRATION_2_3
 import com.example.mypodcast.data.local.MIGRATION_3_4
 import com.example.mypodcast.data.local.MIGRATION_4_5
 import com.example.mypodcast.data.local.MIGRATION_5_6
+import com.example.mypodcast.data.local.MIGRATION_6_7
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,7 +24,14 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "mypodcast.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+            .addMigrations(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+                MIGRATION_6_7
+            )
             .build()
 
     @Provides
@@ -40,4 +48,7 @@ object DatabaseModule {
 
     @Provides
     fun provideQueueDao(db: AppDatabase) = db.queueDao()
+
+    @Provides
+    fun provideSavedMomentDao(db: AppDatabase) = db.savedMomentDao()
 }

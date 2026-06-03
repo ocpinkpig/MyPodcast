@@ -4,10 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.PlayerState
+import com.example.mypodcast.domain.model.Transcript
 import com.example.mypodcast.domain.repository.PlayerRepository
+import com.example.mypodcast.domain.repository.SavedMomentRepository
 import com.example.mypodcast.domain.usecase.episode.GetTranscriptUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     private val playerRepository: PlayerRepository,
-    private val getTranscript: GetTranscriptUseCase
+    private val getTranscript: GetTranscriptUseCase,
+    private val savedMomentRepository: SavedMomentRepository
 ) : ViewModel() {
 
     val playerState: StateFlow<PlayerState> = playerRepository.playerState
@@ -100,11 +104,64 @@ class PlayerViewModel @Inject constructor(
         playerRepository.enqueue(episode)
     }
 
+    fun observeHasSavedMoments(episodeGuid: String): Flow<Boolean> =
+        savedMomentRepository.observeHasSavedMoments(episodeGuid)
+
+    fun saveMoment(episodeGuid: String? = null) {
+        val state = playerRepository.playerState.value
+        val episode = selectedEpisode(episodeGuid) ?: return
+        val positionMs = if (state.previewEpisode?.guid == episode.guid) {
+            episode.playbackPosition
+        } else {
+            state.positionMs
+        }
+        val durationMs = state.durationMs.takeIf { it > 0L }
+            ?: episode.durationSeconds.takeIf { it > 0 }?.times(1000L)
+            ?: 0L
+        val clipStartMs = (positionMs - MOMENT_LEAD_IN_MS).coerceAtLeast(0L)
+        val clipEndMs = if (durationMs > 0L) {
+            (positionMs + MOMENT_FOLLOW_UP_MS).coerceAtMost(durationMs)
+        } else {
+            positionMs + MOMENT_FOLLOW_UP_MS
+        }
+        val transcriptText = (_transcriptState.value as? TranscriptUiState.Loaded)
+            ?.transcript
+            ?.excerptAt(positionMs)
+
+        viewModelScope.launch {
+            savedMomentRepository.saveMoment(
+                episode = episode,
+                positionMs = positionMs,
+                clipStartMs = clipStartMs,
+                clipEndMs = clipEndMs,
+                transcriptText = transcriptText
+            )
+        }
+    }
+
     private fun selectedEpisode(episodeGuid: String?): Episode? {
         val state = playerRepository.playerState.value
         return state.previewEpisode
             ?.takeIf { episodeGuid == null || it.guid == episodeGuid }
             ?: state.episode
                 ?.takeIf { episodeGuid == null || it.guid == episodeGuid }
+    }
+
+    private fun Transcript.excerptAt(positionMs: Long): String? {
+        if (!isSynced) return null
+        val cue = cues.firstOrNull { cue ->
+            positionMs >= cue.startMs && (cue.endMs <= cue.startMs || positionMs <= cue.endMs)
+        } ?: cues.minByOrNull { cue -> kotlin.math.abs(cue.startMs - positionMs) }
+
+        return cue?.text
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?.take(MAX_TRANSCRIPT_EXCERPT_CHARS)
+    }
+
+    private companion object {
+        const val MOMENT_LEAD_IN_MS = 15_000L
+        const val MOMENT_FOLLOW_UP_MS = 45_000L
+        const val MAX_TRANSCRIPT_EXCERPT_CHARS = 240
     }
 }

@@ -11,6 +11,6 @@ class PlayerScreenSourceTest {
 
         assertTrue(source.contains("AnimatedVisibility"))
         assertTrue(source.contains("\"Added to queue\""))
-        assertTrue(source.contains("queueFeedbackKey"))
+        assertTrue(source.contains("PlayerFeedback.Queue"))
     }
 }
