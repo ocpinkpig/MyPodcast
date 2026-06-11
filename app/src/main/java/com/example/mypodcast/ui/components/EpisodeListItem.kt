@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,6 +45,7 @@ fun EpisodeListItem(
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier,
     isDownloaded: Boolean = false,
+    hasTranscript: Boolean = false,
     showDeleteIcon: Boolean = false,
     downloadState: DownloadState? = null,
     onDownloadClick: (() -> Unit)? = null,
@@ -89,6 +91,15 @@ fun EpisodeListItem(
                     Icon(
                         Icons.Filled.Done,
                         contentDescription = "Played",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                }
+                if (hasTranscript) {
+                    Icon(
+                        Icons.Filled.Subtitles,
+                        contentDescription = "Transcript available",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(14.dp)
                     )

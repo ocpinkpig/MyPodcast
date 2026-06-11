@@ -10,6 +10,7 @@ import com.example.mypodcast.domain.repository.LibraryRepository
 import com.example.mypodcast.domain.repository.PlayerRepository
 import com.example.mypodcast.domain.repository.SavedMomentRepository
 import com.example.mypodcast.domain.model.DownloadState
+import com.example.mypodcast.domain.model.TranscriptStatus
 import com.example.mypodcast.domain.usecase.episode.DownloadEpisodeUseCase
 import com.example.mypodcast.domain.usecase.library.GetLibraryUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -56,7 +57,8 @@ data class LibraryUiState(
     val searchQuery: String = "",
     val searchResults: List<LibrarySearchResult> = emptyList(),
     val downloadStates: Map<String, DownloadState> = emptyMap(),
-    val downloadedGuids: Set<String> = emptySet()
+    val downloadedGuids: Set<String> = emptySet(),
+    val transcriptReadyGuids: Set<String> = emptySet()
 )
 
 @HiltViewModel
@@ -93,6 +95,17 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch {
             savedMomentRepository.observeSavedMoments().collect { moments ->
                 _uiState.update { it.copy(savedMoments = moments) }
+            }
+        }
+        viewModelScope.launch {
+            libraryRepository.observeTranscriptStatuses().collect { statuses ->
+                _uiState.update {
+                    it.copy(
+                        transcriptReadyGuids = statuses
+                            .filterValues { status -> status == TranscriptStatus.COMPLETE }
+                            .keys
+                    )
+                }
             }
         }
         @OptIn(ExperimentalCoroutinesApi::class)
