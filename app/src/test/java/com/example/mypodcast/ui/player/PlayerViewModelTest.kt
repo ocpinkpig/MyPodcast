@@ -5,6 +5,8 @@ import com.example.mypodcast.domain.model.PlayerState
 import com.example.mypodcast.domain.model.SavedMoment
 import com.example.mypodcast.domain.repository.PlayerRepository
 import com.example.mypodcast.domain.repository.SavedMomentRepository
+import com.example.mypodcast.domain.transcription.LiveTranscription
+import com.example.mypodcast.domain.transcription.TranscriptionMonitor
 import com.example.mypodcast.domain.usecase.episode.GetTranscriptUseCase
 import com.example.mypodcast.ui.library.MainDispatcherRule
 import junit.framework.TestCase.assertEquals
@@ -38,7 +40,8 @@ class PlayerViewModelTest {
         val viewModel = PlayerViewModel(
             repository,
             GetTranscriptUseCase(FakeTranscriptRepository()),
-            PlayerViewFakeSavedMomentRepository()
+            PlayerViewFakeSavedMomentRepository(),
+            FakeTranscriptionMonitor()
         )
 
         viewModel.playPause("preview")
@@ -61,7 +64,8 @@ class PlayerViewModelTest {
         val viewModel = PlayerViewModel(
             repository,
             GetTranscriptUseCase(FakeTranscriptRepository()),
-            PlayerViewFakeSavedMomentRepository()
+            PlayerViewFakeSavedMomentRepository(),
+            FakeTranscriptionMonitor()
         )
 
         viewModel.playPause("current")
@@ -77,7 +81,8 @@ class PlayerViewModelTest {
         val viewModel = PlayerViewModel(
             repository,
             GetTranscriptUseCase(FakeTranscriptRepository()),
-            PlayerViewFakeSavedMomentRepository()
+            PlayerViewFakeSavedMomentRepository(),
+            FakeTranscriptionMonitor()
         )
 
         viewModel.toggleFavorite()
@@ -93,7 +98,8 @@ class PlayerViewModelTest {
         val viewModel = PlayerViewModel(
             repository,
             GetTranscriptUseCase(FakeTranscriptRepository()),
-            PlayerViewFakeSavedMomentRepository()
+            PlayerViewFakeSavedMomentRepository(),
+            FakeTranscriptionMonitor()
         )
 
         viewModel.toggleFavorite()
@@ -109,7 +115,8 @@ class PlayerViewModelTest {
         val viewModel = PlayerViewModel(
             repository,
             GetTranscriptUseCase(FakeTranscriptRepository()),
-            PlayerViewFakeSavedMomentRepository()
+            PlayerViewFakeSavedMomentRepository(),
+            FakeTranscriptionMonitor()
         )
 
         viewModel.addToQueue()
@@ -131,7 +138,8 @@ class PlayerViewModelTest {
         val viewModel = PlayerViewModel(
             repository,
             GetTranscriptUseCase(FakeTranscriptRepository()),
-            savedMoments
+            savedMoments,
+            FakeTranscriptionMonitor()
         )
 
         viewModel.saveMoment()
@@ -157,6 +165,13 @@ class PlayerViewModelTest {
 
     private fun episode(guid: String, isFavorite: Boolean) =
         episode(guid).copy(isFavorite = isFavorite)
+}
+
+internal class FakeTranscriptionMonitor(
+    initial: LiveTranscription? = null
+) : TranscriptionMonitor {
+    val state = MutableStateFlow(initial)
+    override val live: StateFlow<LiveTranscription?> get() = state
 }
 
 internal class FakePlayerRepository(initialState: PlayerState) : PlayerRepository {

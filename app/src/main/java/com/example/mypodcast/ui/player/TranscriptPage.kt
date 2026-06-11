@@ -87,23 +87,38 @@ internal fun TranscriptPage(
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = "Transcripts appear here when the podcast provides them. " +
-                            "On-device transcription is coming soon.",
+                            "For downloaded episodes, a transcript is generated on this " +
+                            "device as you listen.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
                 }
 
-                is TranscriptUiState.Loaded ->
-                    if (transcriptState.transcript.isSynced) {
-                        SyncedTranscript(
-                            cues = transcriptState.transcript.cues,
-                            positionMs = positionMs,
-                            onSeek = onSeek
-                        )
-                    } else {
-                        PlainTranscript(cues = transcriptState.transcript.cues)
+                is TranscriptUiState.Loaded -> Column(Modifier.fillMaxSize()) {
+                    Box(Modifier.weight(1f)) {
+                        if (transcriptState.transcript.isSynced) {
+                            SyncedTranscript(
+                                cues = transcriptState.transcript.cues,
+                                positionMs = positionMs,
+                                onSeek = onSeek
+                            )
+                        } else {
+                            PlainTranscript(cues = transcriptState.transcript.cues)
+                        }
                     }
+                    transcriptState.transcript.transcribedUpToMs?.let { upToMs ->
+                        Text(
+                            text = "Transcribing as you listen · up to ${formatTranscribedUpTo(upToMs)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp)
+                        )
+                    }
+                }
             }
         }
 
@@ -196,6 +211,14 @@ private fun PlainTranscript(cues: List<TranscriptCue>) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+}
+
+private fun formatTranscribedUpTo(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val h = totalSeconds / 3600
+    val m = (totalSeconds % 3600) / 60
+    val s = totalSeconds % 60
+    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
 }
 
 @Composable
