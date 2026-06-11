@@ -156,4 +156,8 @@ dependencies {
 
   // Reorderable LazyColumn
   implementation(libs.reorderable)
+
+  // On-device transcription
+  implementation(libs.mlkit.genai.speech)
+  implementation(libs.gson)
 }

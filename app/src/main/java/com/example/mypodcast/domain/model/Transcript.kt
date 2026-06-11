@@ -18,8 +18,13 @@ data class TranscriptCue(
  * [isSynced] is true when cues carry real timestamps (VTT/SRT/JSON) so the
  * Player can highlight, auto-scroll, and seek. It is false for plain-text or
  * HTML transcripts, which render as a simple scrollable block.
+ *
+ * [transcribedUpToMs] is non-null only for partially generated on-device
+ * transcripts: the position up to which audio has been transcribed. Null means
+ * the transcript is complete (publisher transcripts are always complete).
  */
 data class Transcript(
     val cues: List<TranscriptCue>,
-    val isSynced: Boolean
+    val isSynced: Boolean,
+    val transcribedUpToMs: Long? = null
 )
