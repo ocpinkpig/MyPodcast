@@ -1,0 +1,165 @@
+package com.example.mypodcast.data.transcription
+
+import com.example.mypodcast.domain.model.Episode
+import com.example.mypodcast.domain.model.TranscriptStatus
+import com.example.mypodcast.domain.repository.LibraryRepository
+import com.example.mypodcast.domain.repository.PlayerRepository
+import com.example.mypodcast.domain.transcription.LiveTranscription
+import com.example.mypodcast.domain.transcription.TranscriptionMonitor
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import java.util.Locale
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Watches playback and runs on-device transcript generation for downloaded,
+ * transcript-less episodes while they play ("Variant 2" of the design spec:
+ * an independent paced decode anchored to the playback session, not a tap of
+ * the playback audio).
+ *
+ * Hosted by PlaybackService: [start] in onCreate, [stop] in onDestroy.
+ */
+@Singleton
+class TranscriptionSessionManager @Inject constructor(
+    private val playerRepository: PlayerRepository,
+    private val libraryRepository: LibraryRepository,
+    private val store: GeneratedTranscriptStore,
+    private val engine: SpeechTranscriptionEngine,
+    private val pcmSourceFactory: PcmSourceFactory
+) : TranscriptionMonitor {
+
+    private val _live = MutableStateFlow<LiveTranscription?>(null)
+    override val live: StateFlow<LiveTranscription?> = _live.asStateFlow()
+
+    private var watchJob: Job? = null
+    private var cachedAvailability: EngineAvailability? = null
+
+    fun start(scope: CoroutineScope) {
+        if (watchJob?.isActive == true) return
+        watchJob = scope.launch {
+            playerRepository.playerState
+                .map { state ->
+                    state.episode?.takeIf {
+                        state.isPlaying && it.transcriptUrl.isNullOrBlank()
+                    }
+                }
+                .distinctUntilChangedBy { it?.guid }
+                .collectLatest { episode ->
+                    // collectLatest cancels the running session on pause/stop/switch.
+                    if (episode != null) runSession(episode)
+                }
+        }
+    }
+
+    fun stop() {
+        watchJob?.cancel()
+        watchJob = null
+    }
+
+    private suspend fun runSession(episode: Episode) {
+        val filePath = libraryRepository.getDownloadedFilePath(episode.guid) ?: return
+        if (!engineReady()) return
+        val resumed = store.read(episode.guid)
+        if (resumed?.isComplete == true) return
+
+        var cues = resumed?.cues.orEmpty()
+        var upToMs = resumed?.transcribedUpToMs ?: 0L
+        var unsavedCues = 0
+        var lastPersistedMs = upToMs
+
+        libraryRepository.setTranscriptStatus(episode.guid, TranscriptStatus.IN_PROGRESS)
+        _live.value = LiveTranscription(episode.guid, cues, upToMs, isComplete = false)
+
+        fun persist(isComplete: Boolean) {
+            store.write(
+                episode.guid,
+                GeneratedTranscript(cues, upToMs, isComplete, SpeechTranscriptionEngine.VERSION)
+            )
+            unsavedCues = 0
+            lastPersistedMs = upToMs
+        }
+
+        try {
+            EpisodeTranscriber(engine)
+                .transcribe(pcmSourceFactory.create(filePath), startMs = upToMs, locale = Locale.getDefault())
+                .collect { event ->
+                    when (event) {
+                        is TranscriberEvent.Cue -> {
+                            cues = cues + event.cue
+                            upToMs = maxOf(upToMs, event.cue.endMs)
+                            unsavedCues++
+                            _live.value =
+                                LiveTranscription(episode.guid, cues, upToMs, isComplete = false)
+                        }
+
+                        is TranscriberEvent.Progress -> {
+                            upToMs = maxOf(upToMs, event.upToMs)
+                            _live.value =
+                                LiveTranscription(episode.guid, cues, upToMs, isComplete = false)
+                        }
+
+                        TranscriberEvent.Completed -> {
+                            persist(isComplete = true)
+                            libraryRepository.setTranscriptStatus(
+                                episode.guid, TranscriptStatus.COMPLETE
+                            )
+                            _live.value =
+                                LiveTranscription(episode.guid, cues, upToMs, isComplete = true)
+                        }
+                    }
+                    if (unsavedCues >= PERSIST_EVERY_CUES ||
+                        upToMs - lastPersistedMs >= PERSIST_EVERY_MS
+                    ) {
+                        persist(isComplete = false)
+                    }
+                }
+        } catch (e: CancellationException) {
+            persist(isComplete = false)
+            throw e
+        } catch (_: Exception) {
+            // Engine/decoder failure: keep what we have; retry next playback session.
+            persist(isComplete = false)
+        }
+    }
+
+    /**
+     * AVAILABLE -> proceed. DOWNLOADABLE -> request the model once, skip for
+     * now (re-check on next session). DOWNLOADING/UNAVAILABLE -> skip silently.
+     */
+    private suspend fun engineReady(): Boolean {
+        val status = cachedAvailability ?: engine.checkAvailability()
+        return when (status) {
+            EngineAvailability.AVAILABLE -> {
+                cachedAvailability = EngineAvailability.AVAILABLE
+                true
+            }
+            EngineAvailability.DOWNLOADABLE -> {
+                runCatching { engine.requestModelDownload() }
+                cachedAvailability = null // re-check next time
+                false
+            }
+            EngineAvailability.DOWNLOADING -> {
+                cachedAvailability = null
+                false
+            }
+            EngineAvailability.UNAVAILABLE -> {
+                cachedAvailability = EngineAvailability.UNAVAILABLE
+                false
+            }
+        }
+    }
+
+    private companion object {
+        const val PERSIST_EVERY_CUES = 15
+        const val PERSIST_EVERY_MS = 30_000L
+    }
+}
