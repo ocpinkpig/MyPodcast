@@ -216,6 +216,13 @@ private class FakeLibraryRepository(
     ) = Unit
     override suspend fun deleteDownload(episodeGuid: String) = Unit
     override suspend fun cleanupOrphanedFiles() = Unit
+    override suspend fun getDownloadedFilePath(episodeGuid: String): String? = null
+    override fun observeTranscriptStatuses(): Flow<Map<String, com.example.mypodcast.domain.model.TranscriptStatus>> =
+        flowOf(emptyMap())
+    override suspend fun setTranscriptStatus(
+        episodeGuid: String,
+        status: com.example.mypodcast.domain.model.TranscriptStatus
+    ) = Unit
 }
 
 private class FakeEpisodeRepository(

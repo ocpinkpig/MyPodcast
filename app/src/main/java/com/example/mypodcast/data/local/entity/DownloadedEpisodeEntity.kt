@@ -9,5 +9,6 @@ data class DownloadedEpisodeEntity(
     val podcastId: Long,
     val localFilePath: String,
     val downloadedAt: Long = System.currentTimeMillis(),
-    val fileSizeBytes: Long
+    val fileSizeBytes: Long,
+    val transcriptStatus: String = "NONE"
 )

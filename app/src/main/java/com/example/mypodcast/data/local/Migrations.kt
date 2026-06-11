@@ -59,3 +59,11 @@ internal val MIGRATION_6_7: Migration = object : Migration(6, 7) {
         db.execSQL("CREATE INDEX IF NOT EXISTS index_saved_moments_createdAt ON saved_moments(createdAt)")
     }
 }
+
+internal val MIGRATION_7_8: Migration = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE downloaded_episodes ADD COLUMN transcriptStatus TEXT NOT NULL DEFAULT 'NONE'"
+        )
+    }
+}
