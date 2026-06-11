@@ -1,6 +1,5 @@
 package com.example.mypodcast.data.repository
 
-import android.content.Context
 import androidx.core.text.HtmlCompat
 import com.example.mypodcast.data.remote.transcript.PlainTextTranscriptParser
 import com.example.mypodcast.data.remote.transcript.PodcastJsonParser
@@ -8,10 +7,11 @@ import com.example.mypodcast.data.remote.transcript.SrtParser
 import com.example.mypodcast.data.remote.transcript.TranscriptFormat
 import com.example.mypodcast.data.remote.transcript.VttParser
 import com.example.mypodcast.data.remote.transcript.transcriptFormatOf
+import com.example.mypodcast.data.transcription.GeneratedTranscriptStore
+import com.example.mypodcast.di.TranscriptFilesDir
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.Transcript
 import com.example.mypodcast.domain.repository.TranscriptRepository
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -23,26 +23,39 @@ import javax.inject.Inject
 /**
  * Fetches a `<podcast:transcript>` file over HTTP, caches the raw body on disk
  * (so re-opening an episode is instant), and parses it into a [Transcript]
- * according to its format. Cloud/on-device speech-to-text can be slotted in
- * later behind the same interface.
+ * according to its format. Episodes without a publisher transcript URL fall
+ * back to the on-device generated transcript store, which the playback-time
+ * transcriber fills in (possibly partially — see [Transcript.transcribedUpToMs]).
  */
 class TranscriptRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val okHttpClient: OkHttpClient
+    @TranscriptFilesDir private val filesDir: File,
+    private val okHttpClient: OkHttpClient,
+    private val generatedTranscriptStore: GeneratedTranscriptStore
 ) : TranscriptRepository {
 
     override suspend fun getTranscript(episode: Episode): Result<Transcript> =
         withContext(Dispatchers.IO) {
             val url = episode.transcriptUrl?.takeIf { it.isNotBlank() }
-                ?: return@withContext Result.success(Transcript(emptyList(), isSynced = false))
+                ?: return@withContext Result.success(generatedTranscript(episode.guid))
             runCatching {
                 val raw = cachedBody(episode.guid) ?: downloadBody(episode.guid, url)
                 parse(raw, transcriptFormatOf(episode.transcriptType, url))
             }
         }
 
+    /** On-device generated transcript, or the empty placeholder when absent. */
+    private fun generatedTranscript(guid: String): Transcript {
+        val generated = generatedTranscriptStore.read(guid)
+            ?: return Transcript(emptyList(), isSynced = false)
+        return Transcript(
+            cues = generated.cues,
+            isSynced = true,
+            transcribedUpToMs = generated.transcribedUpToMs.takeIf { !generated.isComplete }
+        )
+    }
+
     private fun cacheFile(guid: String): File =
-        File(context.filesDir, "transcripts/$guid").also { it.parentFile?.mkdirs() }
+        File(filesDir, "transcripts/$guid").also { it.parentFile?.mkdirs() }
 
     private fun cachedBody(guid: String): String? =
         cacheFile(guid).takeIf { it.exists() && it.length() > 0 }?.readText()
