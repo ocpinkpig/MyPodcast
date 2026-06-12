@@ -150,3 +150,21 @@ Resolution (user-approved):
   currently playing episode so transcription starts without replaying.
 - Without the grant, behavior remains the spec's silent skip — but session
   errors now log to logcat (silence is a UI policy, not a diagnostics policy).
+
+## Addendum (2026-06-12): per-locale model packs
+
+Each recognition language is a separate AICore model pack. Findings from
+on-device debugging of Chinese transcription (Pixel 10):
+
+- `checkStatus()` must be called on a recognizer built WITH the target locale;
+  default options only validate the device-default pack. Availability is now
+  checked, cached, and downloaded per locale.
+- A session against a missing pack fails with the misleading
+  `ERROR_TYPE_INVALID_REQUEST` (not DOWNLOADABLE).
+- Tag forms differ by mode: `cmn-Hans-CN`/`cmn-Hant-TW` are accepted by both
+  basic and advanced modes; plain `zh-*` tags only by advanced. The mapper
+  emits the cmn forms.
+- When a pack is DOWNLOADABLE, the session waits for the download and starts
+  transcribing in the same playback session once it lands.
+- Saved progress is stamped with its locale; partials from a different or
+  unknown locale are discarded rather than resumed.
