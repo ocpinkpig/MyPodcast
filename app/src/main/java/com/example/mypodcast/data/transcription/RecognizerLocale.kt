@@ -19,6 +19,9 @@ internal fun recognizerLocale(feedLanguage: String?, fallback: Locale): Locale {
             lower.endsWith("-tw") || lower.contains("-tw-") ||
             lower.endsWith("-hk") || lower.contains("-hk-") ||
             lower.endsWith("-mo") || lower.contains("-mo-")
+        // Verified on device: AICore accepts cmn-Hans-CN / cmn-Hant-TW in both
+        // basic and advanced modes, while plain zh tags are rejected by basic
+        // mode. Use the cmn forms ML Kit's docs list.
         return if (traditional) {
             Locale.forLanguageTag("cmn-Hant-TW")
         } else {

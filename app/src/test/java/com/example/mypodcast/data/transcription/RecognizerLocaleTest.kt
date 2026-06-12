@@ -16,7 +16,7 @@ class RecognizerLocaleTest {
 
     @Test
     fun `simplified chinese variants map to cmn-Hans-CN`() {
-        // ML Kit lists Mandarin as cmn-Hans-CN, not zh-CN.
+        // AICore accepts cmn tags in both modes; plain zh only in advanced mode.
         for (tag in listOf("zh", "zh-cn", "zh-CN", "zh_CN", "zh-Hans", "zh-SG")) {
             assertEquals(
                 "mapping $tag",

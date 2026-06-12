@@ -11,10 +11,11 @@ enum class EngineAvailability { AVAILABLE, DOWNLOADABLE, DOWNLOADING, UNAVAILABL
  * Recognition in production). Everything above this interface is JVM-testable.
  */
 interface SpeechTranscriptionEngine {
-    suspend fun checkAvailability(): EngineAvailability
+    /** Availability of the model pack for [locale] — each language has its own. */
+    suspend fun checkAvailability(locale: Locale): EngineAvailability
 
-    /** Kick off the on-device model download. Fire-and-forget; safe to repeat. */
-    suspend fun requestModelDownload()
+    /** Kick off the model download for [locale]. Fire-and-forget; safe to repeat. */
+    suspend fun requestModelDownload(locale: Locale)
 
     /** Opens a recognition session expecting 16-bit mono 16 kHz PCM via [SpeechSession.feed]. */
     fun openSession(locale: Locale): SpeechSession

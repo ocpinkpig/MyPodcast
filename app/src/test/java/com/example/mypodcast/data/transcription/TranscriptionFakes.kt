@@ -29,9 +29,13 @@ class FakeSpeechEngine(
         private set
     val openedSessions = mutableListOf<FakeSpeechSession>()
     val openedLocales = mutableListOf<Locale>()
+    val downloadRequestLocales = mutableListOf<Locale>()
 
-    override suspend fun checkAvailability(): EngineAvailability = availability
-    override suspend fun requestModelDownload() { modelDownloadRequests++ }
+    override suspend fun checkAvailability(locale: Locale): EngineAvailability = availability
+    override suspend fun requestModelDownload(locale: Locale) {
+        modelDownloadRequests++
+        downloadRequestLocales.add(locale)
+    }
     override fun openSession(locale: Locale): SpeechSession {
         openedLocales.add(locale)
         return FakeSpeechSession(script, failOnFeed).also { openedSessions.add(it) }

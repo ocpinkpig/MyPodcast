@@ -28,10 +28,10 @@ import javax.inject.Inject
  */
 class MlKitSpeechEngine @Inject constructor() : SpeechTranscriptionEngine {
 
-    override suspend fun checkAvailability(): EngineAvailability {
+    override suspend fun checkAvailability(locale: Locale): EngineAvailability {
         if (Build.VERSION.SDK_INT < MIN_API) return EngineAvailability.UNAVAILABLE
-        return runCatching {
-            newRecognizer().use { recognizer ->
+        val status = runCatching {
+            newRecognizer(locale).use { recognizer ->
                 when (recognizer.checkStatus()) {
                     FeatureStatus.AVAILABLE -> EngineAvailability.AVAILABLE
                     FeatureStatus.DOWNLOADABLE -> EngineAvailability.DOWNLOADABLE
@@ -40,12 +40,13 @@ class MlKitSpeechEngine @Inject constructor() : SpeechTranscriptionEngine {
                 }
             }
         }.getOrDefault(EngineAvailability.UNAVAILABLE)
+        return status
     }
 
-    override suspend fun requestModelDownload() {
+    override suspend fun requestModelDownload(locale: Locale) {
         if (Build.VERSION.SDK_INT < MIN_API) return
         runCatching {
-            newRecognizer().use { recognizer ->
+            newRecognizer(locale).use { recognizer ->
                 // Collecting drives the download; AICore continues it even if
                 // this collection is cancelled with the session.
                 recognizer.download().collect()

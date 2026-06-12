@@ -44,7 +44,7 @@ class TranscriptionSessionManager @Inject constructor(
 
     private val refreshTicks = MutableStateFlow(0)
     private var watchJob: Job? = null
-    private var cachedAvailability: EngineAvailability? = null
+    private val availabilityByLocale = mutableMapOf<String, EngineAvailability>()
 
     fun start(scope: CoroutineScope) {
         if (watchJob?.isActive == true) return
@@ -80,15 +80,15 @@ class TranscriptionSessionManager @Inject constructor(
             Log.d(TAG, "skip ${episode.guid}: not downloaded")
             return
         }
-        if (!engineReady()) {
-            Log.d(TAG, "skip ${episode.guid}: engine not ready (status=$cachedAvailability)")
-            return
-        }
         val locale = recognizerLocale(
             feedLanguage = libraryRepository.getPodcastLanguage(episode.podcastId),
             fallback = Locale.getDefault()
         )
         val localeTag = locale.toLanguageTag()
+        if (!engineReady(locale)) {
+            Log.d(TAG, "skip ${episode.guid}: engine not ready for $localeTag")
+            return
+        }
         val stored = store.read(episode.guid)
         if (stored?.isComplete == true) return
         // Partial progress recorded under a different (or unknown legacy)
@@ -170,25 +170,28 @@ class TranscriptionSessionManager @Inject constructor(
     /**
      * AVAILABLE -> proceed. DOWNLOADABLE -> request the model once, skip for
      * now (re-check on next session). DOWNLOADING/UNAVAILABLE -> skip silently.
+     * Availability is per locale: each language has its own model pack.
      */
-    private suspend fun engineReady(): Boolean {
-        val status = cachedAvailability ?: engine.checkAvailability()
+    private suspend fun engineReady(locale: Locale): Boolean {
+        val tag = locale.toLanguageTag()
+        val status = availabilityByLocale[tag] ?: engine.checkAvailability(locale)
+        Log.d(TAG, "engine status for $tag: $status")
         return when (status) {
             EngineAvailability.AVAILABLE -> {
-                cachedAvailability = EngineAvailability.AVAILABLE
+                availabilityByLocale[tag] = EngineAvailability.AVAILABLE
                 true
             }
             EngineAvailability.DOWNLOADABLE -> {
-                runCatching { engine.requestModelDownload() }
-                cachedAvailability = null // re-check next time
+                runCatching { engine.requestModelDownload(locale) }
+                availabilityByLocale.remove(tag) // re-check next time
                 false
             }
             EngineAvailability.DOWNLOADING -> {
-                cachedAvailability = null
+                availabilityByLocale.remove(tag)
                 false
             }
             EngineAvailability.UNAVAILABLE -> {
-                cachedAvailability = EngineAvailability.UNAVAILABLE
+                availabilityByLocale[tag] = EngineAvailability.UNAVAILABLE
                 false
             }
         }
