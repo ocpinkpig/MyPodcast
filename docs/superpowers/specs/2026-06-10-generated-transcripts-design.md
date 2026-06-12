@@ -133,3 +133,20 @@ API 31+ device.
 - System notifications of any kind.
 - Speaker diarization, translation, or transcript editing.
 - Transcribing streamed (non-downloaded) episodes.
+
+## Addendum (2026-06-11): RECORD_AUDIO requirement discovered on device
+
+Device testing on a Pixel 10 revealed that the ML Kit GenAI speech engine
+fails with `ERROR_TYPE_INSUFFICIENT_PERMISSION` unless the app holds the
+`RECORD_AUDIO` runtime permission — even when audio is supplied via
+`AudioSource.fromPfd` from a downloaded file, never the microphone.
+
+Resolution (user-approved):
+- `RECORD_AUDIO` is declared in the manifest.
+- The transcript page's empty state (downloaded episode, no publisher
+  transcript, API 31+) shows an "Enable on-device transcription" button that
+  explains the upcoming system dialog, then requests the permission.
+- Granting calls `TranscriptionMonitor.refresh()`, which re-evaluates the
+  currently playing episode so transcription starts without replaying.
+- Without the grant, behavior remains the spec's silent skip — but session
+  errors now log to logcat (silence is a UI policy, not a diagnostics policy).
