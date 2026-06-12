@@ -124,6 +124,9 @@ class LibraryRepositoryImpl @Inject constructor(
     override suspend fun getDownloadedFilePath(episodeGuid: String): String? =
         downloadedEpisodeDao.getByGuid(episodeGuid)?.localFilePath
 
+    override suspend fun getPodcastLanguage(podcastId: Long): String? =
+        podcastDao.getById(podcastId)?.language
+
     override fun observeTranscriptStatuses(): Flow<Map<String, TranscriptStatus>> =
         downloadedEpisodeDao.observeAll().map { downloads ->
             downloads.associate { d ->

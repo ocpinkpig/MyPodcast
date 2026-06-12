@@ -4,6 +4,8 @@ data class RssFeed(
     val title: String,
     val imageUrl: String?,
     val description: String?,
+    /** Channel-level `<language>` tag, e.g. "en-US" or "zh-CN". */
+    val language: String? = null,
     val episodes: List<RssEpisode>
 )
 

@@ -19,6 +19,9 @@ interface LibraryRepository {
     /** Absolute path of the downloaded audio file, or null if not downloaded. */
     suspend fun getDownloadedFilePath(episodeGuid: String): String?
 
+    /** RSS `<language>` of the podcast (e.g. "en-US", "zh-CN"), or null if unknown. */
+    suspend fun getPodcastLanguage(podcastId: Long): String?
+
     /** On-device transcript generation status per downloaded episode guid. */
     fun observeTranscriptStatuses(): Flow<Map<String, TranscriptStatus>>
 

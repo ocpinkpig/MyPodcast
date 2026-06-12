@@ -79,4 +79,33 @@ class CueSplitterTest {
     fun `blank text yields no cues`() {
         assertEquals(emptyList<Any>(), splitIntoSentenceCues("   ", 0, 1_000))
     }
+
+    @Test
+    fun `chinese full-width punctuation splits without trailing spaces`() {
+        val cues = splitIntoSentenceCues(
+            text = "今天天气真的很好。我们一起去公园散步吧。",
+            startMs = 0,
+            endMs = 8_000
+        )
+
+        assertEquals(2, cues.size)
+        assertEquals("今天天气真的很好。", cues[0].text)
+        assertEquals("我们一起去公园散步吧。", cues[1].text)
+        assertEquals(0L, cues[0].startMs)
+        assertEquals(cues[0].endMs, cues[1].startMs) // contiguous
+        assertEquals(8_000L, cues[1].endMs)
+    }
+
+    @Test
+    fun `chinese question and exclamation marks are boundaries`() {
+        val cues = splitIntoSentenceCues(
+            text = "你真的确定要这样做吗？当然是这样确定的！",
+            startMs = 0,
+            endMs = 6_000
+        )
+
+        assertEquals(2, cues.size)
+        assertEquals("你真的确定要这样做吗？", cues[0].text)
+        assertEquals("当然是这样确定的！", cues[1].text)
+    }
 }

@@ -28,11 +28,14 @@ class FakeSpeechEngine(
     var modelDownloadRequests = 0
         private set
     val openedSessions = mutableListOf<FakeSpeechSession>()
+    val openedLocales = mutableListOf<Locale>()
 
     override suspend fun checkAvailability(): EngineAvailability = availability
     override suspend fun requestModelDownload() { modelDownloadRequests++ }
-    override fun openSession(locale: Locale): SpeechSession =
-        FakeSpeechSession(script, failOnFeed).also { openedSessions.add(it) }
+    override fun openSession(locale: Locale): SpeechSession {
+        openedLocales.add(locale)
+        return FakeSpeechSession(script, failOnFeed).also { openedSessions.add(it) }
+    }
 }
 
 class FakeSpeechSession(
@@ -95,11 +98,13 @@ class FakePlayerRepository : com.example.mypodcast.domain.repository.PlayerRepos
 
 /** Minimal LibraryRepository fake: only the members the session manager touches. */
 class FakeTranscriptionLibraryRepository(
-    private val pathByGuid: Map<String, String> = emptyMap()
+    private val pathByGuid: Map<String, String> = emptyMap(),
+    private val languageByPodcastId: Map<Long, String> = emptyMap()
 ) : com.example.mypodcast.domain.repository.LibraryRepository {
     val statusUpdates = mutableListOf<Pair<String, com.example.mypodcast.domain.model.TranscriptStatus>>()
 
     override suspend fun getDownloadedFilePath(episodeGuid: String): String? = pathByGuid[episodeGuid]
+    override suspend fun getPodcastLanguage(podcastId: Long): String? = languageByPodcastId[podcastId]
     override suspend fun setTranscriptStatus(
         episodeGuid: String,
         status: com.example.mypodcast.domain.model.TranscriptStatus

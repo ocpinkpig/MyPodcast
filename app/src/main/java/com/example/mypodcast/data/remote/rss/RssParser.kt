@@ -34,6 +34,7 @@ class RssParser @Inject constructor(private val okHttpClient: OkHttpClient) {
 
         var feedTitle = ""
         var feedImage: String? = null
+        var feedLanguage: String? = null
         val feedDescriptionBuf = StringBuilder()
         val feedItunesSummaryBuf = StringBuilder()
         val episodes = mutableListOf<RssEpisode>()
@@ -114,6 +115,9 @@ class RssParser @Inject constructor(private val okHttpClient: OkHttpClient) {
                             "pubDate" -> if (inItem && trimmed.isNotEmpty()) publishedAt = parseDate(trimmed)
                             "itunes:duration" -> if (inItem && trimmed.isNotEmpty()) durationSeconds = parseDuration(trimmed)
                             "url" -> if (inImage && trimmed.isNotEmpty()) feedImage = trimmed
+                            "language" -> if (!inItem && trimmed.isNotEmpty() && feedLanguage == null) {
+                                feedLanguage = trimmed
+                            }
                         }
                     }
                 }
@@ -164,6 +168,7 @@ class RssParser @Inject constructor(private val okHttpClient: OkHttpClient) {
             title = feedTitle,
             imageUrl = feedImage,
             description = feedDescription,
+            language = feedLanguage,
             episodes = episodes
         )
     }

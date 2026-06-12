@@ -220,6 +220,28 @@ class TranscriptionSessionManagerTest {
     }
 
     @Test
+    fun `uses podcast feed language for the recognizer locale`() = runTest {
+        val player = FakePlayerRepository()
+        val library = FakeTranscriptionLibraryRepository(
+            pathByGuid = mapOf("ep-1" to "/files/ep-1.mp3"),
+            languageByPodcastId = mapOf(1L to "zh-CN")
+        )
+        val engine = FakeSpeechEngine(emptyList())
+        val source = FakePcmSource(listOf(32_000 to 1_000L))
+        val (mgr, _) = manager(player, library, engine, mapOf("/files/ep-1.mp3" to source))
+
+        mgr.start(this)
+        player.state.value = PlayerState(episode = episode(), isPlaying = true)
+        advanceUntilIdle()
+
+        assertEquals(
+            java.util.Locale.forLanguageTag("cmn-Hans-CN"),
+            engine.openedLocales.single()
+        )
+        coroutineContext.cancelChildren()
+    }
+
+    @Test
     fun `engine error persists progress without crashing`() = runTest {
         val player = FakePlayerRepository()
         val library = FakeTranscriptionLibraryRepository(mapOf("ep-1" to "/files/ep-1.mp3"))

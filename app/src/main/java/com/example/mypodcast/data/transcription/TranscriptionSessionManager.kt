@@ -105,9 +105,14 @@ class TranscriptionSessionManager @Inject constructor(
             lastPersistedMs = upToMs
         }
 
+        val locale = recognizerLocale(
+            feedLanguage = libraryRepository.getPodcastLanguage(episode.podcastId),
+            fallback = Locale.getDefault()
+        )
+
         try {
             EpisodeTranscriber(engine)
-                .transcribe(pcmSourceFactory.create(filePath), startMs = upToMs, locale = Locale.getDefault())
+                .transcribe(pcmSourceFactory.create(filePath), startMs = upToMs, locale = locale)
                 .collect { event ->
                     when (event) {
                         is TranscriberEvent.Cue -> {

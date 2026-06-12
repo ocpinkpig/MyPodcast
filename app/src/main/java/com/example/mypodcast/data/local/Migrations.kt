@@ -67,3 +67,9 @@ internal val MIGRATION_7_8: Migration = object : Migration(7, 8) {
         )
     }
 }
+
+internal val MIGRATION_8_9: Migration = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE podcasts ADD COLUMN language TEXT")
+    }
+}

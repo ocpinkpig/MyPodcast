@@ -28,4 +28,16 @@ class MigrationsTest {
         assertTrue(sql.contains("ALTER TABLE downloaded_episodes"))
         assertTrue(sql.contains("ADD COLUMN transcriptStatus TEXT NOT NULL DEFAULT 'NONE'"))
     }
+
+    @Test
+    fun `migration 8 to 9 adds nullable podcast language column`() {
+        val executed = mutableListOf<String>()
+
+        MIGRATION_8_9.migrate(recordingDb(executed))
+
+        assertEquals(1, executed.size)
+        val sql = executed.single()
+        assertTrue(sql.contains("ALTER TABLE podcasts"))
+        assertTrue(sql.contains("ADD COLUMN language TEXT"))
+    }
 }
