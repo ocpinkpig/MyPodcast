@@ -179,6 +179,28 @@ class TranscriptionSessionManagerTest {
     }
 
     @Test
+    fun `transcribes in the same session once the model download completes`() = runTest {
+        val player = FakePlayerRepository()
+        val library = FakeTranscriptionLibraryRepository(mapOf("ep-1" to "/files/ep-1.mp3"))
+        val engine = FakeSpeechEngine(
+            listOf(32_000L to "model just arrived"),
+            availability = EngineAvailability.DOWNLOADABLE,
+            availabilityAfterDownload = EngineAvailability.AVAILABLE
+        )
+        val source = FakePcmSource(listOf(32_000 to 1_000L))
+        val (mgr, store) = manager(player, library, engine, mapOf("/files/ep-1.mp3" to source))
+
+        mgr.start(this)
+        player.state.value = PlayerState(episode = episode(), isPlaying = true)
+        advanceUntilIdle()
+
+        assertEquals(1, engine.modelDownloadRequests)
+        assertEquals(true, store.read("ep-1")?.isComplete)
+        assertEquals("model just arrived", store.read("ep-1")?.cues?.single()?.text)
+        coroutineContext.cancelChildren()
+    }
+
+    @Test
     fun `does not rerun an already complete transcript`() = runTest {
         val player = FakePlayerRepository()
         val library = FakeTranscriptionLibraryRepository(mapOf("ep-1" to "/files/ep-1.mp3"))

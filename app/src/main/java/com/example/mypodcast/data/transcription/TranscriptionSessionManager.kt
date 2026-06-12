@@ -182,9 +182,19 @@ class TranscriptionSessionManager @Inject constructor(
                 true
             }
             EngineAvailability.DOWNLOADABLE -> {
-                runCatching { engine.requestModelDownload(locale) }
-                availabilityByLocale.remove(tag) // re-check next time
-                false
+                // Suspends until AICore finishes (or fails) the pack download;
+                // if it lands while this episode is still playing, transcribe
+                // right away instead of waiting for the next play event.
+                val downloaded = runCatching { engine.requestModelDownload(locale) }.isSuccess
+                val after = if (downloaded) engine.checkAvailability(locale) else status
+                Log.d(TAG, "model download for $tag finished, status now $after")
+                availabilityByLocale.remove(tag)
+                if (after == EngineAvailability.AVAILABLE) {
+                    availabilityByLocale[tag] = after
+                    true
+                } else {
+                    false
+                }
             }
             EngineAvailability.DOWNLOADING -> {
                 availabilityByLocale.remove(tag)

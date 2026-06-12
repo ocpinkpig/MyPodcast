@@ -23,7 +23,9 @@ class FakePcmSource(private val chunks: List<Pair<Int, Long>>) : PcmSource {
 class FakeSpeechEngine(
     private val script: List<Pair<Long, String>>, // fedBytesAtLeast -> segment text
     var availability: EngineAvailability = EngineAvailability.AVAILABLE,
-    var failOnFeed: Boolean = false
+    var failOnFeed: Boolean = false,
+    /** When set, requestModelDownload flips [availability] to this value. */
+    var availabilityAfterDownload: EngineAvailability? = null
 ) : SpeechTranscriptionEngine {
     var modelDownloadRequests = 0
         private set
@@ -35,6 +37,7 @@ class FakeSpeechEngine(
     override suspend fun requestModelDownload(locale: Locale) {
         modelDownloadRequests++
         downloadRequestLocales.add(locale)
+        availabilityAfterDownload?.let { availability = it }
     }
     override fun openSession(locale: Locale): SpeechSession {
         openedLocales.add(locale)
