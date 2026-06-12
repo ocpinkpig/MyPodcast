@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -41,24 +42,31 @@ class TranscriptionSessionManager @Inject constructor(
     private val _live = MutableStateFlow<LiveTranscription?>(null)
     override val live: StateFlow<LiveTranscription?> = _live.asStateFlow()
 
+    private val refreshTicks = MutableStateFlow(0)
     private var watchJob: Job? = null
     private var cachedAvailability: EngineAvailability? = null
 
     fun start(scope: CoroutineScope) {
         if (watchJob?.isActive == true) return
         watchJob = scope.launch {
-            playerRepository.playerState
-                .map { state ->
+            combine(
+                playerRepository.playerState.map { state ->
                     state.episode?.takeIf {
                         state.isPlaying && it.transcriptUrl.isNullOrBlank()
                     }
-                }
-                .distinctUntilChangedBy { it?.guid }
-                .collectLatest { episode ->
+                },
+                refreshTicks
+            ) { episode, tick -> episode to tick }
+                .distinctUntilChangedBy { (episode, tick) -> episode?.guid to tick }
+                .collectLatest { (episode, _) ->
                     // collectLatest cancels the running session on pause/stop/switch.
                     if (episode != null) runSession(episode)
                 }
         }
+    }
+
+    override fun refresh() {
+        refreshTicks.value++
     }
 
     fun stop() {

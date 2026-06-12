@@ -198,6 +198,28 @@ class TranscriptionSessionManagerTest {
     }
 
     @Test
+    fun `refresh re-runs a session that previously failed`() = runTest {
+        val player = FakePlayerRepository()
+        val library = FakeTranscriptionLibraryRepository(mapOf("ep-1" to "/files/ep-1.mp3"))
+        val engine = FakeSpeechEngine(listOf(32_000L to "recovered"), failOnFeed = true)
+        val source = FakePcmSource(listOf(32_000 to 1_000L))
+        val (mgr, store) = manager(player, library, engine, mapOf("/files/ep-1.mp3" to source))
+
+        mgr.start(this)
+        player.state.value = PlayerState(episode = episode(), isPlaying = true)
+        advanceUntilIdle()
+        assertEquals(false, store.read("ep-1")?.isComplete) // first run failed
+
+        engine.failOnFeed = false
+        mgr.refresh() // e.g. RECORD_AUDIO was just granted
+        advanceUntilIdle()
+
+        assertEquals(true, store.read("ep-1")?.isComplete)
+        assertEquals("recovered", store.read("ep-1")?.cues?.single()?.text)
+        coroutineContext.cancelChildren()
+    }
+
+    @Test
     fun `engine error persists progress without crashing`() = runTest {
         val player = FakePlayerRepository()
         val library = FakeTranscriptionLibraryRepository(mapOf("ep-1" to "/files/ep-1.mp3"))

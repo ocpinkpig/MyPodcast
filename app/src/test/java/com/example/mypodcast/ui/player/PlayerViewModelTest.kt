@@ -5,6 +5,7 @@ import com.example.mypodcast.domain.model.PlayerState
 import com.example.mypodcast.domain.model.SavedMoment
 import com.example.mypodcast.domain.repository.PlayerRepository
 import com.example.mypodcast.domain.repository.SavedMomentRepository
+import com.example.mypodcast.data.transcription.FakeTranscriptionLibraryRepository
 import com.example.mypodcast.domain.transcription.LiveTranscription
 import com.example.mypodcast.domain.transcription.TranscriptionMonitor
 import com.example.mypodcast.domain.usecase.episode.GetTranscriptUseCase
@@ -41,7 +42,8 @@ class PlayerViewModelTest {
             repository,
             GetTranscriptUseCase(FakeTranscriptRepository()),
             PlayerViewFakeSavedMomentRepository(),
-            FakeTranscriptionMonitor()
+            FakeTranscriptionMonitor(),
+            FakeTranscriptionLibraryRepository()
         )
 
         viewModel.playPause("preview")
@@ -65,7 +67,8 @@ class PlayerViewModelTest {
             repository,
             GetTranscriptUseCase(FakeTranscriptRepository()),
             PlayerViewFakeSavedMomentRepository(),
-            FakeTranscriptionMonitor()
+            FakeTranscriptionMonitor(),
+            FakeTranscriptionLibraryRepository()
         )
 
         viewModel.playPause("current")
@@ -82,7 +85,8 @@ class PlayerViewModelTest {
             repository,
             GetTranscriptUseCase(FakeTranscriptRepository()),
             PlayerViewFakeSavedMomentRepository(),
-            FakeTranscriptionMonitor()
+            FakeTranscriptionMonitor(),
+            FakeTranscriptionLibraryRepository()
         )
 
         viewModel.toggleFavorite()
@@ -99,7 +103,8 @@ class PlayerViewModelTest {
             repository,
             GetTranscriptUseCase(FakeTranscriptRepository()),
             PlayerViewFakeSavedMomentRepository(),
-            FakeTranscriptionMonitor()
+            FakeTranscriptionMonitor(),
+            FakeTranscriptionLibraryRepository()
         )
 
         viewModel.toggleFavorite()
@@ -116,7 +121,8 @@ class PlayerViewModelTest {
             repository,
             GetTranscriptUseCase(FakeTranscriptRepository()),
             PlayerViewFakeSavedMomentRepository(),
-            FakeTranscriptionMonitor()
+            FakeTranscriptionMonitor(),
+            FakeTranscriptionLibraryRepository()
         )
 
         viewModel.addToQueue()
@@ -139,7 +145,8 @@ class PlayerViewModelTest {
             repository,
             GetTranscriptUseCase(FakeTranscriptRepository()),
             savedMoments,
-            FakeTranscriptionMonitor()
+            FakeTranscriptionMonitor(),
+            FakeTranscriptionLibraryRepository()
         )
 
         viewModel.saveMoment()
@@ -171,7 +178,11 @@ internal class FakeTranscriptionMonitor(
     initial: LiveTranscription? = null
 ) : TranscriptionMonitor {
     val state = MutableStateFlow(initial)
+    var refreshCount = 0
+        private set
+
     override val live: StateFlow<LiveTranscription?> get() = state
+    override fun refresh() { refreshCount++ }
 }
 
 internal class FakePlayerRepository(initialState: PlayerState) : PlayerRepository {

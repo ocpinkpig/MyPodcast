@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.PlayerState
 import com.example.mypodcast.domain.model.Transcript
+import com.example.mypodcast.domain.repository.LibraryRepository
 import com.example.mypodcast.domain.repository.PlayerRepository
 import com.example.mypodcast.domain.repository.SavedMomentRepository
 import com.example.mypodcast.domain.transcription.TranscriptionMonitor
@@ -24,7 +25,8 @@ class PlayerViewModel @Inject constructor(
     private val playerRepository: PlayerRepository,
     private val getTranscript: GetTranscriptUseCase,
     private val savedMomentRepository: SavedMomentRepository,
-    private val transcriptionMonitor: TranscriptionMonitor
+    private val transcriptionMonitor: TranscriptionMonitor,
+    private val libraryRepository: LibraryRepository
 ) : ViewModel() {
 
     val playerState: StateFlow<PlayerState> = playerRepository.playerState
@@ -131,6 +133,12 @@ class PlayerViewModel @Inject constructor(
 
     fun observeHasSavedMoments(episodeGuid: String): Flow<Boolean> =
         savedMomentRepository.observeHasSavedMoments(episodeGuid)
+
+    fun observeIsDownloaded(episodeGuid: String): Flow<Boolean> =
+        libraryRepository.observeIsDownloaded(episodeGuid)
+
+    /** Called when the user grants RECORD_AUDIO via the transcript page opt-in. */
+    fun onTranscriptionPermissionGranted() = transcriptionMonitor.refresh()
 
     fun saveMoment(episodeGuid: String? = null) {
         val state = playerRepository.playerState.value
