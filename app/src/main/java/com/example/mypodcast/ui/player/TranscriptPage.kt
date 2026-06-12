@@ -131,6 +131,16 @@ internal fun TranscriptPage(
                                 .fillMaxWidth()
                                 .padding(vertical = 6.dp)
                         )
+                        if (offerTranscription) {
+                            // Partial transcript but permission since revoked:
+                            // give the user a way back in. Self-hides when granted.
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                EnableTranscriptionButton(onTranscriptionEnabled)
+                            }
+                        }
                     }
                 }
             }
