@@ -70,6 +70,26 @@ class EpisodeTranscriberTest {
     }
 
     @Test
+    fun `multi-sentence segments are split into contiguous sentence cues`() = runTest {
+        val source = FakePcmSource(listOf(64_000 to 2_000L))
+        val engine = FakeSpeechEngine(
+            listOf(64_000L to "Hello there my good friend. The weather is nice today!")
+        )
+
+        val events = EpisodeTranscriber(engine)
+            .transcribe(source, startMs = 0L, locale = Locale.US)
+            .toList()
+
+        val cues = events.filterIsInstance<TranscriberEvent.Cue>().map { it.cue }
+        assertEquals(2, cues.size)
+        assertEquals("Hello there my good friend.", cues[0].text)
+        assertEquals("The weather is nice today!", cues[1].text)
+        assertEquals(0L, cues[0].startMs)
+        assertEquals(cues[0].endMs, cues[1].startMs)
+        assertEquals(2_000L, cues[1].endMs)
+    }
+
+    @Test
     fun `blank segments are dropped`() = runTest {
         val source = FakePcmSource(listOf(32_000 to 1_000L))
         val engine = FakeSpeechEngine(listOf(32_000L to "   "))

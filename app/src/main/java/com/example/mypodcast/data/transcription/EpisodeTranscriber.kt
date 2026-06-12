@@ -33,14 +33,12 @@ class EpisodeTranscriber(private val engine: SpeechTranscriptionEngine) {
 
                 val resultsJob = launch {
                     session.results.collect { text ->
-                        val trimmed = text.trim()
-                        if (trimmed.isNotEmpty()) {
-                            val end = lastFedMs
-                            send(
-                                TranscriberEvent.Cue(
-                                    TranscriptCue(startMs = lastCueEndMs, endMs = end, text = trimmed)
-                                )
-                            )
+                        val end = lastFedMs
+                        // The engine can finalize 60-90s of speech as one block;
+                        // sentence-split it so highlight/seek granularity stays useful.
+                        val cues = splitIntoSentenceCues(text, startMs = lastCueEndMs, endMs = end)
+                        if (cues.isNotEmpty()) {
+                            cues.forEach { send(TranscriberEvent.Cue(it)) }
                             lastCueEndMs = end
                         }
                     }
