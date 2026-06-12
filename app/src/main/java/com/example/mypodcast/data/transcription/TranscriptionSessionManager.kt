@@ -84,9 +84,20 @@ class TranscriptionSessionManager @Inject constructor(
             Log.d(TAG, "skip ${episode.guid}: engine not ready (status=$cachedAvailability)")
             return
         }
-        val resumed = store.read(episode.guid)
-        if (resumed?.isComplete == true) return
-        Log.d(TAG, "session start ${episode.guid} from ${resumed?.transcribedUpToMs ?: 0}ms")
+        val locale = recognizerLocale(
+            feedLanguage = libraryRepository.getPodcastLanguage(episode.podcastId),
+            fallback = Locale.getDefault()
+        )
+        val localeTag = locale.toLanguageTag()
+        val stored = store.read(episode.guid)
+        if (stored?.isComplete == true) return
+        // Partial progress recorded under a different (or unknown legacy)
+        // locale was produced by the wrong recognition model — start over.
+        val resumed = stored?.takeIf { it.locale == localeTag }
+        if (stored != null && resumed == null) {
+            Log.d(TAG, "discarding ${episode.guid} progress (locale ${stored.locale} -> $localeTag)")
+        }
+        Log.d(TAG, "session start ${episode.guid} from ${resumed?.transcribedUpToMs ?: 0}ms locale=$localeTag")
 
         var cues = resumed?.cues.orEmpty()
         var upToMs = resumed?.transcribedUpToMs ?: 0L
@@ -99,16 +110,17 @@ class TranscriptionSessionManager @Inject constructor(
         fun persist(isComplete: Boolean) {
             store.write(
                 episode.guid,
-                GeneratedTranscript(cues, upToMs, isComplete, SpeechTranscriptionEngine.VERSION)
+                GeneratedTranscript(
+                    cues = cues,
+                    transcribedUpToMs = upToMs,
+                    isComplete = isComplete,
+                    engineVersion = SpeechTranscriptionEngine.VERSION,
+                    locale = localeTag
+                )
             )
             unsavedCues = 0
             lastPersistedMs = upToMs
         }
-
-        val locale = recognizerLocale(
-            feedLanguage = libraryRepository.getPodcastLanguage(episode.podcastId),
-            fallback = Locale.getDefault()
-        )
 
         try {
             EpisodeTranscriber(engine)

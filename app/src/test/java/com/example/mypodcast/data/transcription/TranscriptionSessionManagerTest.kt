@@ -242,6 +242,42 @@ class TranscriptionSessionManagerTest {
     }
 
     @Test
+    fun `partial progress from a different locale is discarded, not resumed`() = runTest {
+        val player = FakePlayerRepository()
+        val library = FakeTranscriptionLibraryRepository(
+            pathByGuid = mapOf("ep-1" to "/files/ep-1.mp3"),
+            languageByPodcastId = mapOf(1L to "zh-CN")
+        )
+        val engine = FakeSpeechEngine(listOf(32_000L to "重新开始的转写内容在这里。"))
+        val source = FakePcmSource(listOf(32_000 to 1_000L))
+        val (mgr, store) = manager(player, library, engine, mapOf("/files/ep-1.mp3" to source))
+        // Stale partial transcribed with the wrong (English) model.
+        store.write(
+            "ep-1",
+            GeneratedTranscript(
+                cues = listOf(com.example.mypodcast.domain.model.TranscriptCue(0, 60_000, "Foreign.")),
+                transcribedUpToMs = 60_000,
+                isComplete = false,
+                engineVersion = "x",
+                locale = "en-US"
+            )
+        )
+
+        mgr.start(this)
+        player.state.value = PlayerState(episode = episode(), isPlaying = true)
+        advanceUntilIdle()
+
+        val saved = store.read("ep-1")!!
+        assertTrue(saved.isComplete)
+        // Started over from 0 with the Chinese locale: old cue gone, new cue starts at 0.
+        assertEquals(1, saved.cues.size)
+        assertEquals("重新开始的转写内容在这里。", saved.cues.single().text)
+        assertEquals(0L, saved.cues.single().startMs)
+        assertEquals("cmn-Hans-CN", saved.locale)
+        coroutineContext.cancelChildren()
+    }
+
+    @Test
     fun `engine error persists progress without crashing`() = runTest {
         val player = FakePlayerRepository()
         val library = FakeTranscriptionLibraryRepository(mapOf("ep-1" to "/files/ep-1.mp3"))

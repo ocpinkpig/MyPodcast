@@ -9,7 +9,9 @@ data class GeneratedTranscript(
     val cues: List<TranscriptCue>,
     val transcribedUpToMs: Long,
     val isComplete: Boolean,
-    val engineVersion: String
+    val engineVersion: String,
+    /** BCP-47 tag of the recognizer locale that produced [cues]; null on legacy files. */
+    val locale: String? = null
 )
 
 /**
