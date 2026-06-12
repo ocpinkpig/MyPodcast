@@ -1,5 +1,6 @@
 package com.example.mypodcast.data.transcription
 
+import android.util.Log
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.TranscriptStatus
 import com.example.mypodcast.domain.repository.LibraryRepository
@@ -66,10 +67,18 @@ class TranscriptionSessionManager @Inject constructor(
     }
 
     private suspend fun runSession(episode: Episode) {
-        val filePath = libraryRepository.getDownloadedFilePath(episode.guid) ?: return
-        if (!engineReady()) return
+        val filePath = libraryRepository.getDownloadedFilePath(episode.guid)
+        if (filePath == null) {
+            Log.d(TAG, "skip ${episode.guid}: not downloaded")
+            return
+        }
+        if (!engineReady()) {
+            Log.d(TAG, "skip ${episode.guid}: engine not ready (status=$cachedAvailability)")
+            return
+        }
         val resumed = store.read(episode.guid)
         if (resumed?.isComplete == true) return
+        Log.d(TAG, "session start ${episode.guid} from ${resumed?.transcribedUpToMs ?: 0}ms")
 
         var cues = resumed?.cues.orEmpty()
         var upToMs = resumed?.transcribedUpToMs ?: 0L
@@ -125,8 +134,10 @@ class TranscriptionSessionManager @Inject constructor(
         } catch (e: CancellationException) {
             persist(isComplete = false)
             throw e
-        } catch (_: Exception) {
-            // Engine/decoder failure: keep what we have; retry next playback session.
+        } catch (e: Exception) {
+            // Engine/decoder failure: keep what we have; retry next playback
+            // session. Silent in the UI by design, but never silent in logcat.
+            Log.w(TAG, "transcription failed for ${episode.guid} at ${upToMs}ms", e)
             persist(isComplete = false)
         }
     }
@@ -159,6 +170,7 @@ class TranscriptionSessionManager @Inject constructor(
     }
 
     private companion object {
+        const val TAG = "TranscriptionSession"
         const val PERSIST_EVERY_CUES = 15
         const val PERSIST_EVERY_MS = 30_000L
     }
