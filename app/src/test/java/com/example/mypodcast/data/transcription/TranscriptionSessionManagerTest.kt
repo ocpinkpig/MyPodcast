@@ -300,6 +300,37 @@ class TranscriptionSessionManagerTest {
     }
 
     @Test
+    fun `partial progress from an older engine version is discarded`() = runTest {
+        val player = FakePlayerRepository()
+        val library = FakeTranscriptionLibraryRepository(mapOf("ep-1" to "/files/ep-1.mp3"))
+        val engine = FakeSpeechEngine(listOf(32_000L to "regenerated"))
+        val source = FakePcmSource(listOf(32_000 to 1_000L))
+        val (mgr, store) = manager(player, library, engine, mapOf("/files/ep-1.mp3" to source))
+        // Same locale, but produced by an older engine/mode — must regenerate.
+        store.write(
+            "ep-1",
+            GeneratedTranscript(
+                cues = listOf(com.example.mypodcast.domain.model.TranscriptCue(0, 60_000, "bad basic-mode text")),
+                transcribedUpToMs = 60_000,
+                isComplete = false,
+                engineVersion = "old-version",
+                locale = java.util.Locale.getDefault().toLanguageTag()
+            )
+        )
+
+        mgr.start(this)
+        player.state.value = PlayerState(episode = episode(), isPlaying = true)
+        advanceUntilIdle()
+
+        val saved = store.read("ep-1")!!
+        assertEquals(1, saved.cues.size)
+        assertEquals("regenerated", saved.cues.single().text)
+        assertEquals(0L, saved.cues.single().startMs)
+        assertEquals(SpeechTranscriptionEngine.VERSION, saved.engineVersion)
+        coroutineContext.cancelChildren()
+    }
+
+    @Test
     fun `engine error persists progress without crashing`() = runTest {
         val player = FakePlayerRepository()
         val library = FakeTranscriptionLibraryRepository(mapOf("ep-1" to "/files/ep-1.mp3"))

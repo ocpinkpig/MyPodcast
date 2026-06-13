@@ -21,7 +21,9 @@ interface SpeechTranscriptionEngine {
     fun openSession(locale: Locale): SpeechSession
 
     companion object {
-        const val VERSION = "mlkit-genai-1.0.0-alpha1"
+        // Bump when the recognition setup changes in a way that invalidates
+        // previously generated transcripts (e.g. basic -> advanced mode).
+        const val VERSION = "mlkit-genai-1.0.0-alpha1-advanced"
     }
 }
 

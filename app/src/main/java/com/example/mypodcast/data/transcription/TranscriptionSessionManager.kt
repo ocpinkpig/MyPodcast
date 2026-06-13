@@ -91,11 +91,18 @@ class TranscriptionSessionManager @Inject constructor(
         }
         val stored = store.read(episode.guid)
         if (stored?.isComplete == true) return
-        // Partial progress recorded under a different (or unknown legacy)
-        // locale was produced by the wrong recognition model — start over.
-        val resumed = stored?.takeIf { it.locale == localeTag }
+        // Only resume progress produced by the same recognizer locale AND engine
+        // version — a different locale, or an older engine/mode (e.g. a basic-mode
+        // transcript from before the advanced-mode switch), is regenerated.
+        val resumed = stored?.takeIf {
+            it.locale == localeTag && it.engineVersion == SpeechTranscriptionEngine.VERSION
+        }
         if (stored != null && resumed == null) {
-            Log.d(TAG, "discarding ${episode.guid} progress (locale ${stored.locale} -> $localeTag)")
+            Log.d(
+                TAG,
+                "discarding ${episode.guid} progress " +
+                    "(locale ${stored.locale}->$localeTag, version ${stored.engineVersion})"
+            )
         }
         Log.d(TAG, "session start ${episode.guid} from ${resumed?.transcribedUpToMs ?: 0}ms locale=$localeTag")
 
