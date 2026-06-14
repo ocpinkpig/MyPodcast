@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.PlayerState
 import com.example.mypodcast.domain.model.Transcript
+import com.example.mypodcast.domain.repository.LibraryRepository
 import com.example.mypodcast.domain.repository.PlayerRepository
 import com.example.mypodcast.domain.repository.SavedMomentRepository
+import com.example.mypodcast.domain.transcription.TranscriptionMonitor
 import com.example.mypodcast.domain.usecase.episode.GetTranscriptUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -14,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -21,7 +24,9 @@ import javax.inject.Inject
 class PlayerViewModel @Inject constructor(
     private val playerRepository: PlayerRepository,
     private val getTranscript: GetTranscriptUseCase,
-    private val savedMomentRepository: SavedMomentRepository
+    private val savedMomentRepository: SavedMomentRepository,
+    private val transcriptionMonitor: TranscriptionMonitor,
+    private val libraryRepository: LibraryRepository
 ) : ViewModel() {
 
     val playerState: StateFlow<PlayerState> = playerRepository.playerState
@@ -34,8 +39,9 @@ class PlayerViewModel @Inject constructor(
 
     /**
      * Loads the transcript for [episode], reusing the result once loaded for the
-     * same episode. Episodes without a transcript URL resolve to [TranscriptUiState.Empty]
-     * — the surface a future on-device transcriber can fill.
+     * same episode. Episodes without a transcript URL show the on-device
+     * generated transcript (possibly partial) and follow the live session while
+     * the episode plays.
      */
     fun loadTranscript(episode: Episode?) {
         if (episode == null) return
@@ -45,21 +51,42 @@ class PlayerViewModel @Inject constructor(
 
         loadedTranscriptGuid = episode.guid
         transcriptJob?.cancel()
-
-        if (episode.transcriptUrl.isNullOrBlank()) {
-            _transcriptState.value = TranscriptUiState.Empty
-            return
-        }
-
         _transcriptState.value = TranscriptUiState.Loading
+
         transcriptJob = viewModelScope.launch {
-            _transcriptState.value = getTranscript(episode).fold(
-                onSuccess = { transcript ->
-                    if (transcript.cues.isEmpty()) TranscriptUiState.Empty
-                    else TranscriptUiState.Loaded(transcript)
-                },
-                onFailure = { TranscriptUiState.Error(it.message ?: "Couldn't load transcript") }
-            )
+            if (!episode.transcriptUrl.isNullOrBlank()) {
+                _transcriptState.value = getTranscript(episode).fold(
+                    onSuccess = { transcript ->
+                        if (transcript.cues.isEmpty()) TranscriptUiState.Empty
+                        else TranscriptUiState.Loaded(transcript)
+                    },
+                    onFailure = { TranscriptUiState.Error(it.message ?: "Couldn't load transcript") }
+                )
+                return@launch
+            }
+
+            // No publisher transcript: show what's been generated so far, then
+            // follow the live on-device session for this episode.
+            val stored = getTranscript(episode).getOrNull()
+            _transcriptState.value = stored
+                ?.takeIf { it.cues.isNotEmpty() }
+                ?.let { TranscriptUiState.Loaded(it) }
+                ?: TranscriptUiState.Empty
+
+            transcriptionMonitor.live
+                .filter { it != null && it.episodeGuid == episode.guid }
+                .collect { live ->
+                    if (live!!.cues.isNotEmpty()) {
+                        _transcriptState.value = TranscriptUiState.Loaded(
+                            Transcript(
+                                cues = live.cues,
+                                isSynced = true,
+                                transcribedUpToMs = live.transcribedUpToMs
+                                    .takeIf { !live.isComplete }
+                            )
+                        )
+                    }
+                }
         }
     }
 
@@ -106,6 +133,12 @@ class PlayerViewModel @Inject constructor(
 
     fun observeHasSavedMoments(episodeGuid: String): Flow<Boolean> =
         savedMomentRepository.observeHasSavedMoments(episodeGuid)
+
+    fun observeIsDownloaded(episodeGuid: String): Flow<Boolean> =
+        libraryRepository.observeIsDownloaded(episodeGuid)
+
+    /** Called when the user grants RECORD_AUDIO via the transcript page opt-in. */
+    fun onTranscriptionPermissionGranted() = transcriptionMonitor.refresh()
 
     fun saveMoment(episodeGuid: String? = null) {
         val state = playerRepository.playerState.value

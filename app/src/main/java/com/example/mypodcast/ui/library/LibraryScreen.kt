@@ -315,6 +315,7 @@ fun LibraryScreen(
                                                 viewModel.playEpisode(episode)
                                                 onEpisodePlay(episode.guid)
                                             },
+                                            hasTranscript = episode.guid in state.transcriptReadyGuids,
                                             showDeleteIcon = true,
                                             onDeleteDownloadClick = { pendingDelete = episode }
                                         )

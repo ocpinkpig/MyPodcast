@@ -110,6 +110,16 @@ fun PlayerScreen(
             ?.let(viewModel::observeHasSavedMoments)
             ?: flowOf(false)
     }.collectAsStateWithLifecycle(initialValue = false)
+    val isDownloaded by remember(transcriptEpisode?.guid) {
+        transcriptEpisode?.guid
+            ?.let(viewModel::observeIsDownloaded)
+            ?: flowOf(false)
+    }.collectAsStateWithLifecycle(initialValue = false)
+    // On-device transcription is offered only where it can actually run:
+    // downloaded episode, no publisher transcript, engine-capable OS.
+    val offerTranscription = isDownloaded &&
+        transcriptEpisode?.transcriptUrl.isNullOrBlank() &&
+        android.os.Build.VERSION.SDK_INT >= 31
     val context = LocalContext.current
     val shareEpisode = displayState.episode
     val canShare = shareEpisode != null
@@ -180,7 +190,9 @@ fun PlayerScreen(
             onAddToQueueClick = { viewModel.addToQueue(episodeGuid) },
             onSaveMomentClick = { viewModel.saveMoment(episodeGuid) },
             hasSavedMoments = hasSavedMoments,
-            onRetryTranscript = { viewModel.retryTranscript(transcriptEpisode) }
+            onRetryTranscript = { viewModel.retryTranscript(transcriptEpisode) },
+            offerTranscription = offerTranscription,
+            onTranscriptionEnabled = viewModel::onTranscriptionPermissionGranted
         )
     }
 
@@ -226,7 +238,9 @@ private fun PlayerPager(
     onAddToQueueClick: () -> Unit,
     onSaveMomentClick: () -> Unit,
     hasSavedMoments: Boolean,
-    onRetryTranscript: () -> Unit
+    onRetryTranscript: () -> Unit,
+    offerTranscription: Boolean,
+    onTranscriptionEnabled: () -> Unit
 ) {
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { 3 })
 
@@ -270,7 +284,9 @@ private fun PlayerPager(
                     onPlayPause = onPlayPause,
                     onSkipBack = onSkipBack,
                     onSkipForward = onSkipForward,
-                    onRetry = onRetryTranscript
+                    onRetry = onRetryTranscript,
+                    offerTranscription = offerTranscription,
+                    onTranscriptionEnabled = onTranscriptionEnabled
                 )
             }
         }

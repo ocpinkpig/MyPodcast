@@ -39,13 +39,20 @@ class EpisodeRepositoryImpl @Inject constructor(
         }
         episodeDao.upsertAll(merged)
 
-        // Backfill the podcast's description from the RSS feed channel-level
-        // <description> / <itunes:summary>. iTunes Search doesn't return one,
-        // so this is the only way to populate it.
+        // Backfill channel-level metadata the iTunes Search API doesn't return:
+        // <description> / <itunes:summary>, and <language> (used to pick the
+        // on-device transcription locale).
         val feedDescription = feed.description?.takeIf { it.isNotBlank() }
+        val feedLanguage = feed.language?.takeIf { it.isNotBlank() }
         val existingPodcast = podcastDao.getById(podcastId)
-        if (feedDescription != null && existingPodcast != null && existingPodcast.description.isNullOrBlank()) {
-            podcastDao.upsert(existingPodcast.copy(description = feedDescription))
+        if (existingPodcast != null) {
+            val updated = existingPodcast.copy(
+                description = feedDescription
+                    ?.takeIf { existingPodcast.description.isNullOrBlank() }
+                    ?: existingPodcast.description,
+                language = feedLanguage ?: existingPodcast.language
+            )
+            if (updated != existingPodcast) podcastDao.upsert(updated)
         }
 
         val podcastArtwork = existingPodcast?.artworkUrl

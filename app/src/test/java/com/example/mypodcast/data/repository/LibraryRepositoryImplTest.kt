@@ -35,7 +35,10 @@ class LibraryRepositoryImplTest {
             subscriptionDao = db.subscriptionDao(),
             podcastDao = db.podcastDao(),
             episodeDao = db.episodeDao(),
-            downloadedEpisodeDao = db.downloadedEpisodeDao()
+            downloadedEpisodeDao = db.downloadedEpisodeDao(),
+            generatedTranscriptStore = com.example.mypodcast.data.transcription.GeneratedTranscriptStore(
+                RuntimeEnvironment.getApplication().filesDir
+            )
         )
     }
 

@@ -9,8 +9,10 @@ import com.example.mypodcast.data.local.dao.PodcastDao
 import com.example.mypodcast.data.local.dao.SubscriptionDao
 import com.example.mypodcast.data.local.entity.DownloadedEpisodeEntity
 import com.example.mypodcast.data.local.entity.SubscriptionEntity
+import com.example.mypodcast.data.transcription.GeneratedTranscriptStore
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.Podcast
+import com.example.mypodcast.domain.model.TranscriptStatus
 import com.example.mypodcast.domain.repository.LibraryRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +30,8 @@ class LibraryRepositoryImpl @Inject constructor(
     private val subscriptionDao: SubscriptionDao,
     private val podcastDao: PodcastDao,
     private val episodeDao: EpisodeDao,
-    private val downloadedEpisodeDao: DownloadedEpisodeDao
+    private val downloadedEpisodeDao: DownloadedEpisodeDao,
+    private val generatedTranscriptStore: GeneratedTranscriptStore
 ) : LibraryRepository {
 
     override suspend fun subscribe(podcastId: Long) =
@@ -112,8 +115,28 @@ class LibraryRepositoryImpl @Inject constructor(
                 runCatching { File(entity.localFilePath).delete() }
             }
         }
+        withContext(Dispatchers.IO) {
+            runCatching { generatedTranscriptStore.delete(episodeGuid) }
+        }
         downloadedEpisodeDao.deleteByGuid(episodeGuid)
     }
+
+    override suspend fun getDownloadedFilePath(episodeGuid: String): String? =
+        downloadedEpisodeDao.getByGuid(episodeGuid)?.localFilePath
+
+    override suspend fun getPodcastLanguage(podcastId: Long): String? =
+        podcastDao.getById(podcastId)?.language
+
+    override fun observeTranscriptStatuses(): Flow<Map<String, TranscriptStatus>> =
+        downloadedEpisodeDao.observeAll().map { downloads ->
+            downloads.associate { d ->
+                d.episodeGuid to runCatching { TranscriptStatus.valueOf(d.transcriptStatus) }
+                    .getOrDefault(TranscriptStatus.NONE)
+            }
+        }
+
+    override suspend fun setTranscriptStatus(episodeGuid: String, status: TranscriptStatus) =
+        downloadedEpisodeDao.updateTranscriptStatus(episodeGuid, status.name)
 
     override suspend fun cleanupOrphanedFiles() = withContext(Dispatchers.IO) {
         val episodesDir = File(context.filesDir, "episodes")

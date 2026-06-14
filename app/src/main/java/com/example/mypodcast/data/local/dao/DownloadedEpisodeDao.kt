@@ -27,4 +27,7 @@ interface DownloadedEpisodeDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM downloaded_episodes WHERE episodeGuid = :guid)")
     fun observeIsDownloaded(guid: String): Flow<Boolean>
+
+    @Query("UPDATE downloaded_episodes SET transcriptStatus = :status WHERE episodeGuid = :guid")
+    suspend fun updateTranscriptStatus(guid: String, status: String)
 }

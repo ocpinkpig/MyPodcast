@@ -78,7 +78,13 @@ class PlayerTranscriptViewModelTest {
     }
 
     private fun viewModel(getTranscript: GetTranscriptUseCase) =
-        PlayerViewModel(FakePlayerRepository(PlayerState()), getTranscript, TranscriptFakeSavedMomentRepository())
+        PlayerViewModel(
+            FakePlayerRepository(PlayerState()),
+            getTranscript,
+            TranscriptFakeSavedMomentRepository(),
+            FakeTranscriptionMonitor(),
+            com.example.mypodcast.data.transcription.FakeTranscriptionLibraryRepository()
+        )
 
     private fun episode(guid: String, transcriptUrl: String?) = Episode(
         guid = guid,

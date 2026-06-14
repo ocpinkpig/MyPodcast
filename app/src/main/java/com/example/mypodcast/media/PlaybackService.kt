@@ -24,9 +24,14 @@ import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.ListenableFuture
 import com.example.mypodcast.MainActivity
 import com.example.mypodcast.R
+import com.example.mypodcast.data.transcription.TranscriptionSessionManager
 import com.google.common.util.concurrent.FutureCallback
 import com.google.common.util.concurrent.Futures
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -34,6 +39,11 @@ class PlaybackService : MediaSessionService() {
 
     @Inject
     lateinit var playerController: PlayerController
+
+    @Inject
+    lateinit var transcriptionSessionManager: TranscriptionSessionManager
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private var mediaSession: MediaSession? = null
     private var cachedArtworkUri: Uri? = null
@@ -117,6 +127,8 @@ class PlaybackService : MediaSessionService() {
                 updateNotification(session, cachedArtwork)
             }
         })
+
+        transcriptionSessionManager.start(serviceScope)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -134,6 +146,8 @@ class PlaybackService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onDestroy() {
+        transcriptionSessionManager.stop()
+        serviceScope.cancel()
         mediaSession?.release()
         mediaSession = null
         super.onDestroy()

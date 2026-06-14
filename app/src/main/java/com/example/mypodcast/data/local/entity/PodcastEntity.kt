@@ -13,5 +13,7 @@ data class PodcastEntity(
     val description: String?,
     val genres: String,
     val episodeCount: Int,
-    val cachedAt: Long = System.currentTimeMillis()
+    val cachedAt: Long = System.currentTimeMillis(),
+    /** RSS channel `<language>` (BCP-47-ish, e.g. "en-US", "zh-CN"); null until a feed refresh. */
+    val language: String? = null
 )
