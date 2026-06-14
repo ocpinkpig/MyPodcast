@@ -201,14 +201,20 @@ class TranscriptionSessionManagerTest {
     }
 
     @Test
-    fun `does not rerun an already complete transcript`() = runTest {
+    fun `does not rerun a complete transcript from the current engine`() = runTest {
         val player = FakePlayerRepository()
         val library = FakeTranscriptionLibraryRepository(mapOf("ep-1" to "/files/ep-1.mp3"))
         val engine = FakeSpeechEngine(emptyList())
         val (mgr, store) = manager(player, library, engine, emptyMap())
         store.write(
             "ep-1",
-            GeneratedTranscript(emptyList(), 120_000L, isComplete = true, engineVersion = "x")
+            GeneratedTranscript(
+                cues = emptyList(),
+                transcribedUpToMs = 120_000L,
+                isComplete = true,
+                engineVersion = SpeechTranscriptionEngine.VERSION,
+                locale = java.util.Locale.getDefault().toLanguageTag()
+            )
         )
 
         mgr.start(this)
@@ -216,6 +222,36 @@ class TranscriptionSessionManagerTest {
         advanceUntilIdle()
 
         assertTrue(engine.openedSessions.isEmpty())
+        coroutineContext.cancelChildren()
+    }
+
+    @Test
+    fun `regenerates a complete transcript from an older engine version`() = runTest {
+        val player = FakePlayerRepository()
+        val library = FakeTranscriptionLibraryRepository(mapOf("ep-1" to "/files/ep-1.mp3"))
+        val engine = FakeSpeechEngine(listOf(32_000L to "regenerated in advanced mode"))
+        val source = FakePcmSource(listOf(32_000 to 1_000L))
+        val (mgr, store) = manager(player, library, engine, mapOf("/files/ep-1.mp3" to source))
+        // A COMPLETE transcript from the old basic-mode engine must still be
+        // regenerated — this is the exact bug from on-device testing.
+        store.write(
+            "ep-1",
+            GeneratedTranscript(
+                cues = listOf(com.example.mypodcast.domain.model.TranscriptCue(0, 120_000, "bad basic text")),
+                transcribedUpToMs = 120_000L,
+                isComplete = true,
+                engineVersion = "mlkit-genai-1.0.0-alpha1",
+                locale = java.util.Locale.getDefault().toLanguageTag()
+            )
+        )
+
+        mgr.start(this)
+        player.state.value = PlayerState(episode = episode(), isPlaying = true)
+        advanceUntilIdle()
+
+        val saved = store.read("ep-1")!!
+        assertEquals("regenerated in advanced mode", saved.cues.single().text)
+        assertEquals(SpeechTranscriptionEngine.VERSION, saved.engineVersion)
         coroutineContext.cancelChildren()
     }
 

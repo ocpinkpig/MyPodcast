@@ -90,6 +90,19 @@ class EpisodeTranscriberTest {
     }
 
     @Test
+    fun `applies the text transform to finalized segments`() = runTest {
+        val source = FakePcmSource(listOf(32_000 to 1_000L))
+        val engine = FakeSpeechEngine(listOf(32_000L to "歡迎收聽"))
+
+        val events = EpisodeTranscriber(engine, textTransform = ::toSimplifiedChinese)
+            .transcribe(source, startMs = 0L, locale = Locale.US)
+            .toList()
+
+        val cue = events.filterIsInstance<TranscriberEvent.Cue>().single().cue
+        assertEquals("欢迎收听", cue.text)
+    }
+
+    @Test
     fun `blank segments are dropped`() = runTest {
         val source = FakePcmSource(listOf(32_000 to 1_000L))
         val engine = FakeSpeechEngine(listOf(32_000L to "   "))

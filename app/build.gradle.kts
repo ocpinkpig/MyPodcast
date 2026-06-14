@@ -160,4 +160,5 @@ dependencies {
   // On-device transcription
   implementation(libs.mlkit.genai.speech)
   implementation(libs.gson)
+  implementation(libs.opencc4j)
 }
