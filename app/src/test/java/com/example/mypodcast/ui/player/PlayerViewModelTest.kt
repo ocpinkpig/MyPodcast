@@ -43,7 +43,8 @@ class PlayerViewModelTest {
             GetTranscriptUseCase(FakeTranscriptRepository()),
             PlayerViewFakeSavedMomentRepository(),
             FakeTranscriptionMonitor(),
-            FakeTranscriptionLibraryRepository()
+            FakeTranscriptionLibraryRepository(),
+            com.example.mypodcast.data.transcription.FakeFeatureFlags()
         )
 
         viewModel.playPause("preview")
@@ -68,7 +69,8 @@ class PlayerViewModelTest {
             GetTranscriptUseCase(FakeTranscriptRepository()),
             PlayerViewFakeSavedMomentRepository(),
             FakeTranscriptionMonitor(),
-            FakeTranscriptionLibraryRepository()
+            FakeTranscriptionLibraryRepository(),
+            com.example.mypodcast.data.transcription.FakeFeatureFlags()
         )
 
         viewModel.playPause("current")
@@ -86,7 +88,8 @@ class PlayerViewModelTest {
             GetTranscriptUseCase(FakeTranscriptRepository()),
             PlayerViewFakeSavedMomentRepository(),
             FakeTranscriptionMonitor(),
-            FakeTranscriptionLibraryRepository()
+            FakeTranscriptionLibraryRepository(),
+            com.example.mypodcast.data.transcription.FakeFeatureFlags()
         )
 
         viewModel.toggleFavorite()
@@ -104,7 +107,8 @@ class PlayerViewModelTest {
             GetTranscriptUseCase(FakeTranscriptRepository()),
             PlayerViewFakeSavedMomentRepository(),
             FakeTranscriptionMonitor(),
-            FakeTranscriptionLibraryRepository()
+            FakeTranscriptionLibraryRepository(),
+            com.example.mypodcast.data.transcription.FakeFeatureFlags()
         )
 
         viewModel.toggleFavorite()
@@ -122,7 +126,8 @@ class PlayerViewModelTest {
             GetTranscriptUseCase(FakeTranscriptRepository()),
             PlayerViewFakeSavedMomentRepository(),
             FakeTranscriptionMonitor(),
-            FakeTranscriptionLibraryRepository()
+            FakeTranscriptionLibraryRepository(),
+            com.example.mypodcast.data.transcription.FakeFeatureFlags()
         )
 
         viewModel.addToQueue()
@@ -146,7 +151,8 @@ class PlayerViewModelTest {
             GetTranscriptUseCase(FakeTranscriptRepository()),
             savedMoments,
             FakeTranscriptionMonitor(),
-            FakeTranscriptionLibraryRepository()
+            FakeTranscriptionLibraryRepository(),
+            com.example.mypodcast.data.transcription.FakeFeatureFlags()
         )
 
         viewModel.saveMoment()

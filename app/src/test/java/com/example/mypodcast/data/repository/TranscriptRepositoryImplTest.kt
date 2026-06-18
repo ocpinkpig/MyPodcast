@@ -32,10 +32,14 @@ class TranscriptRepositoryImplTest {
         transcriptUrl = transcriptUrl
     )
 
-    private fun repository(store: GeneratedTranscriptStore) = TranscriptRepositoryImpl(
+    private fun repository(
+        store: GeneratedTranscriptStore,
+        transcriptionEnabled: Boolean = true
+    ) = TranscriptRepositoryImpl(
         filesDir = tmp.root,
         okHttpClient = OkHttpClient(),
-        generatedTranscriptStore = store
+        generatedTranscriptStore = store,
+        featureFlags = com.example.mypodcast.data.transcription.FakeFeatureFlags(transcriptionEnabled)
     )
 
     @Test
@@ -65,6 +69,26 @@ class TranscriptRepositoryImplTest {
         assertEquals("Generated words", transcript.cues.single().text)
         assertTrue(transcript.isSynced)
         assertEquals(5_000L, transcript.transcribedUpToMs)
+    }
+
+    @Test
+    fun `generated transcript is not served when feature disabled`() = runTest {
+        val store = GeneratedTranscriptStore(tmp.root)
+        store.write(
+            "ep-1",
+            GeneratedTranscript(
+                cues = listOf(TranscriptCue(0, 5_000, "Generated words")),
+                transcribedUpToMs = 5_000,
+                isComplete = false,
+                engineVersion = "x"
+            )
+        )
+
+        val transcript = repository(store, transcriptionEnabled = false)
+            .getTranscript(episode()).getOrThrow()
+
+        assertTrue(transcript.cues.isEmpty())
+        assertEquals(false, transcript.isSynced)
     }
 
     @Test

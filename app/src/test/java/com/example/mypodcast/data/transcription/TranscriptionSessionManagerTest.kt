@@ -40,6 +40,16 @@ class TranscriptionSessionManagerTest {
         library: FakeTranscriptionLibraryRepository,
         engine: FakeSpeechEngine,
         sourcesByPath: Map<String, PcmSource>
+    ): Pair<TranscriptionSessionManager, GeneratedTranscriptStore> = managerWithFlags(
+        player, library, engine, sourcesByPath, FakeFeatureFlags(enabled = true)
+    )
+
+    private fun managerWithFlags(
+        player: FakePlayerRepository,
+        library: FakeTranscriptionLibraryRepository,
+        engine: FakeSpeechEngine,
+        sourcesByPath: Map<String, PcmSource>,
+        featureFlags: FakeFeatureFlags
     ): Pair<TranscriptionSessionManager, GeneratedTranscriptStore> {
         val store = GeneratedTranscriptStore(tmp.root)
         val mgr = TranscriptionSessionManager(
@@ -50,7 +60,8 @@ class TranscriptionSessionManagerTest {
             pcmSourceFactory = object : PcmSourceFactory {
                 override fun create(filePath: String): PcmSource =
                     sourcesByPath.getValue(filePath)
-            }
+            },
+            featureFlags = featureFlags
         )
         return mgr to store
     }
@@ -107,6 +118,27 @@ class TranscriptionSessionManagerTest {
         assertEquals(false, saved!!.isComplete)
         assertEquals("first part", saved.cues.single().text)
         assertTrue(saved.transcribedUpToMs >= 1_000L)
+        coroutineContext.cancelChildren()
+    }
+
+    @Test
+    fun `does nothing when the feature flag is disabled`() = runTest {
+        val player = FakePlayerRepository()
+        val library = FakeTranscriptionLibraryRepository(mapOf("ep-1" to "/files/ep-1.mp3"))
+        val engine = FakeSpeechEngine(listOf(32_000L to "should not run"))
+        val source = FakePcmSource(listOf(32_000 to 1_000L))
+        val (mgr, store) = managerWithFlags(
+            player, library, engine, mapOf("/files/ep-1.mp3" to source),
+            FakeFeatureFlags(enabled = false)
+        )
+
+        mgr.start(this)
+        player.state.value = PlayerState(episode = episode(), isPlaying = true)
+        advanceUntilIdle()
+
+        assertNull(store.read("ep-1"))
+        assertTrue(engine.openedSessions.isEmpty())
+        assertTrue(library.statusUpdates.isEmpty())
         coroutineContext.cancelChildren()
     }
 

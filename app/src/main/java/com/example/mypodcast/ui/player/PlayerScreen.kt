@@ -116,8 +116,9 @@ fun PlayerScreen(
             ?: flowOf(false)
     }.collectAsStateWithLifecycle(initialValue = false)
     // On-device transcription is offered only where it can actually run:
-    // downloaded episode, no publisher transcript, engine-capable OS.
-    val offerTranscription = isDownloaded &&
+    // feature enabled, downloaded episode, no publisher transcript, engine-capable OS.
+    val offerTranscription = viewModel.transcriptionEnabled &&
+        isDownloaded &&
         transcriptEpisode?.transcriptUrl.isNullOrBlank() &&
         android.os.Build.VERSION.SDK_INT >= 31
     val context = LocalContext.current

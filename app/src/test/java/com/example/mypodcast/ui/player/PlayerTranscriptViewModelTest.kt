@@ -83,7 +83,8 @@ class PlayerTranscriptViewModelTest {
             getTranscript,
             TranscriptFakeSavedMomentRepository(),
             FakeTranscriptionMonitor(),
-            com.example.mypodcast.data.transcription.FakeTranscriptionLibraryRepository()
+            com.example.mypodcast.data.transcription.FakeTranscriptionLibraryRepository(),
+            com.example.mypodcast.data.transcription.FakeFeatureFlags()
         )
 
     private fun episode(guid: String, transcriptUrl: String?) = Episode(

@@ -1,6 +1,7 @@
 package com.example.mypodcast.data.transcription
 
 import android.util.Log
+import com.example.mypodcast.domain.FeatureFlags
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.TranscriptStatus
 import com.example.mypodcast.domain.repository.LibraryRepository
@@ -36,7 +37,8 @@ class TranscriptionSessionManager @Inject constructor(
     private val libraryRepository: LibraryRepository,
     private val store: GeneratedTranscriptStore,
     private val engine: SpeechTranscriptionEngine,
-    private val pcmSourceFactory: PcmSourceFactory
+    private val pcmSourceFactory: PcmSourceFactory,
+    private val featureFlags: FeatureFlags
 ) : TranscriptionMonitor {
 
     private val _live = MutableStateFlow<LiveTranscription?>(null)
@@ -47,6 +49,7 @@ class TranscriptionSessionManager @Inject constructor(
     private val availabilityByLocale = mutableMapOf<String, EngineAvailability>()
 
     fun start(scope: CoroutineScope) {
+        if (!featureFlags.onDeviceTranscriptionEnabled) return
         if (watchJob?.isActive == true) return
         watchJob = scope.launch {
             combine(
