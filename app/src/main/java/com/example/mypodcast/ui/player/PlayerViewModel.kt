@@ -112,6 +112,19 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun seekTo(positionMs: Long) = playerRepository.seekTo(positionMs)
+
+    fun seekToAndPlay(positionMs: Long) {
+        val state = playerRepository.playerState.value
+        val previewEpisode = state.previewEpisode
+        if (previewEpisode != null && previewEpisode.guid != state.episode?.guid) {
+            playerRepository.play(previewEpisode)
+        } else if (!state.isPlaying) {
+            playerRepository.resume()
+        }
+        // Seek after ensuring the target episode is active, regardless of branch.
+        playerRepository.seekTo(positionMs)
+    }
+
     fun skipForward() = playerRepository.skipForward(seconds = 30)
     fun skipBack() = playerRepository.skipBack(seconds = 30)
     fun setSpeed(speed: Float) = playerRepository.setPlaybackSpeed(speed)

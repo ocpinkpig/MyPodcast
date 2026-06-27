@@ -13,4 +13,14 @@ class PlayerScreenSourceTest {
         assertTrue(source.contains("\"Added to queue\""))
         assertTrue(source.contains("PlayerFeedback.Queue"))
     }
+
+    @Test
+    fun showNotesTimestamps_areClickableAndStartPlayback() {
+        val source = File("src/main/java/com/example/mypodcast/ui/player/PlayerScreen.kt").readText()
+
+        assertTrue(source.contains("findTimestampLinks"))
+        assertTrue(source.contains("LinkAnnotation.Clickable"))
+        assertTrue(source.contains("onSeekAndPlay"))
+        assertTrue(source.contains("viewModel::seekToAndPlay"))
+    }
 }

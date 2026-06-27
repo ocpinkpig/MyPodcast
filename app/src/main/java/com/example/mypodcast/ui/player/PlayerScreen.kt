@@ -77,9 +77,15 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.core.text.HtmlCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -181,6 +187,7 @@ fun PlayerScreen(
             transcriptState = transcriptState,
             contentPadding = padding,
             onSeek = viewModel::seekTo,
+            onSeekAndPlay = viewModel::seekToAndPlay,
             onPlayPause = { viewModel.playPause(episodeGuid) },
             onSkipBack = viewModel::skipBack,
             onSkipForward = viewModel::skipForward,
@@ -229,6 +236,7 @@ private fun PlayerPager(
     transcriptState: TranscriptUiState,
     contentPadding: PaddingValues,
     onSeek: (Long) -> Unit,
+    onSeekAndPlay: (Long) -> Unit,
     onPlayPause: () -> Unit,
     onSkipBack: () -> Unit,
     onSkipForward: () -> Unit,
@@ -270,6 +278,7 @@ private fun PlayerPager(
                 1 -> ShowNotesPage(
                     state = state,
                     onSeek = onSeek,
+                    onSeekAndPlay = onSeekAndPlay,
                     onPlayPause = onPlayPause,
                     onSkipBack = onSkipBack,
                     onSkipForward = onSkipForward
@@ -806,6 +815,7 @@ internal fun CompactPlaybackControls(
 private fun ShowNotesPage(
     state: PlayerState,
     onSeek: (Long) -> Unit,
+    onSeekAndPlay: (Long) -> Unit,
     onPlayPause: () -> Unit,
     onSkipBack: () -> Unit,
     onSkipForward: () -> Unit
@@ -897,11 +907,15 @@ private fun ShowNotesPage(
                     )
                 }
             } else {
+                val linkColor = MaterialTheme.colorScheme.primary
+                val annotated = remember(showNotes, linkColor, onSeekAndPlay) {
+                    buildShowNotesAnnotatedString(showNotes, linkColor, onSeekAndPlay)
+                }
                 SelectionContainer(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = showNotes,
+                        text = annotated,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -918,6 +932,39 @@ private fun ShowNotesPage(
             onSkipForward = onSkipForward,
             modifier = Modifier.padding(vertical = 10.dp)
         )
+    }
+}
+
+private fun buildShowNotesAnnotatedString(
+    text: String,
+    linkColor: Color,
+    onSeekAndPlay: (Long) -> Unit
+) = buildAnnotatedString {
+    val links = findTimestampLinks(text)
+    var cursor = 0
+    val linkStyles = TextLinkStyles(
+        style = SpanStyle(
+            color = linkColor,
+            textDecoration = TextDecoration.Underline
+        )
+    )
+    for (link in links) {
+        if (link.start > cursor) {
+            append(text.substring(cursor, link.start))
+        }
+        withLink(
+            LinkAnnotation.Clickable(
+                tag = "ts-${link.start}-${link.positionMs}",
+                styles = linkStyles,
+                linkInteractionListener = { onSeekAndPlay(link.positionMs) }
+            )
+        ) {
+            append(text.substring(link.start, link.endExclusive))
+        }
+        cursor = link.endExclusive
+    }
+    if (cursor < text.length) {
+        append(text.substring(cursor))
     }
 }
 

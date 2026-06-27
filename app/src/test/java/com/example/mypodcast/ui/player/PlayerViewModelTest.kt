@@ -158,6 +158,91 @@ class PlayerViewModelTest {
         assertEquals(65_000L, savedMoments.savedClipEndMs)
     }
 
+    @Test
+    fun seekToAndPlay_resumesPausedCurrentEpisodeThenSeeks() {
+        val current = episode("current")
+        val repository = FakePlayerRepository(
+            PlayerState(episode = current, isPlaying = false)
+        )
+        val viewModel = PlayerViewModel(
+            repository,
+            GetTranscriptUseCase(FakeTranscriptRepository()),
+            PlayerViewFakeSavedMomentRepository(),
+            FakeTranscriptionMonitor(),
+            FakeTranscriptionLibraryRepository()
+        )
+
+        viewModel.seekToAndPlay(75_000L)
+
+        assertEquals(true, repository.resumed)
+        assertEquals(75_000L, repository.seekedToMs)
+        assertEquals(null, repository.playedEpisode)
+    }
+
+    @Test
+    fun seekToAndPlay_startsPreviewEpisodeThenSeeks() {
+        val current = episode("current")
+        val preview = episode("preview")
+        val repository = FakePlayerRepository(
+            PlayerState(episode = current, previewEpisode = preview, isPlaying = true)
+        )
+        val viewModel = PlayerViewModel(
+            repository,
+            GetTranscriptUseCase(FakeTranscriptRepository()),
+            PlayerViewFakeSavedMomentRepository(),
+            FakeTranscriptionMonitor(),
+            FakeTranscriptionLibraryRepository()
+        )
+
+        viewModel.seekToAndPlay(40_000L)
+
+        assertEquals(preview, repository.playedEpisode)
+        assertEquals(40_000L, repository.seekedToMs)
+        assertEquals(false, repository.resumed)
+    }
+
+    @Test
+    fun seekToAndPlay_resumesWhenPreviewMatchesActiveEpisode() {
+        val current = episode("current")
+        val repository = FakePlayerRepository(
+            PlayerState(episode = current, previewEpisode = current, isPlaying = false)
+        )
+        val viewModel = PlayerViewModel(
+            repository,
+            GetTranscriptUseCase(FakeTranscriptRepository()),
+            PlayerViewFakeSavedMomentRepository(),
+            FakeTranscriptionMonitor(),
+            FakeTranscriptionLibraryRepository()
+        )
+
+        viewModel.seekToAndPlay(20_000L)
+
+        assertEquals(true, repository.resumed)
+        assertEquals(20_000L, repository.seekedToMs)
+        assertEquals(null, repository.playedEpisode)
+    }
+
+    @Test
+    fun seekToAndPlay_seeksWithoutResumeWhenAlreadyPlaying() {
+        val current = episode("current")
+        val repository = FakePlayerRepository(
+            PlayerState(episode = current, isPlaying = true)
+        )
+        val viewModel = PlayerViewModel(
+            repository,
+            GetTranscriptUseCase(FakeTranscriptRepository()),
+            PlayerViewFakeSavedMomentRepository(),
+            FakeTranscriptionMonitor(),
+            FakeTranscriptionLibraryRepository()
+        )
+
+        viewModel.seekToAndPlay(10_000L)
+
+        assertEquals(false, repository.resumed)
+        assertEquals(10_000L, repository.seekedToMs)
+        assertEquals(null, repository.playedEpisode)
+    }
+
     private fun episode(guid: String) = Episode(
         guid = guid,
         podcastId = 1L,
@@ -189,6 +274,8 @@ internal class FakePlayerRepository(initialState: PlayerState) : PlayerRepositor
     override val playerState: StateFlow<PlayerState> = MutableStateFlow(initialState)
     var playedEpisode: Episode? = null
     var paused = false
+    var resumed = false
+    var seekedToMs: Long? = null
     var favoriteGuid: String? = null
     var favoriteValue: Boolean? = null
     var enqueuedEpisode: Episode? = null
@@ -203,8 +290,12 @@ internal class FakePlayerRepository(initialState: PlayerState) : PlayerRepositor
         paused = true
     }
 
-    override fun resume() = Unit
-    override fun seekTo(positionMs: Long) = Unit
+    override fun resume() {
+        resumed = true
+    }
+    override fun seekTo(positionMs: Long) {
+        seekedToMs = positionMs
+    }
     override fun skipForward(seconds: Int) = Unit
     override fun skipBack(seconds: Int) = Unit
     override fun setPlaybackSpeed(speed: Float) = Unit
