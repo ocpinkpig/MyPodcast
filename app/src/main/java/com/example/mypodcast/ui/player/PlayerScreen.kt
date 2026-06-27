@@ -908,7 +908,7 @@ private fun ShowNotesPage(
                 }
             } else {
                 val linkColor = MaterialTheme.colorScheme.primary
-                val annotated = remember(showNotes, linkColor) {
+                val annotated = remember(showNotes, linkColor, onSeekAndPlay) {
                     buildShowNotesAnnotatedString(showNotes, linkColor, onSeekAndPlay)
                 }
                 SelectionContainer(
@@ -954,7 +954,7 @@ private fun buildShowNotesAnnotatedString(
         }
         withLink(
             LinkAnnotation.Clickable(
-                tag = "ts-${link.positionMs}",
+                tag = "ts-${link.start}-${link.positionMs}",
                 styles = linkStyles,
                 linkInteractionListener = { onSeekAndPlay(link.positionMs) }
             )
