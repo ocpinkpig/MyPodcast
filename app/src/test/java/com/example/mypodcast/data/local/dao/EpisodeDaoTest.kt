@@ -5,6 +5,7 @@ import com.example.mypodcast.data.local.AppDatabase
 import com.example.mypodcast.data.local.entity.EpisodeEntity
 import com.example.mypodcast.data.local.entity.PodcastEntity
 import junit.framework.TestCase.assertEquals
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -67,9 +68,60 @@ class EpisodeDaoTest {
         assertEquals("played", latest?.guid)
     }
 
-    private fun podcast() = PodcastEntity(
-        id = 1L,
-        title = "Podcast",
+    @Test
+    fun observeTopShows_ordersByPlayedCountThenLatestPlayback() = runTest {
+        db.podcastDao().upsertAll(
+            listOf(
+                podcast(id = 1L, title = "Most Played"),
+                podcast(id = 2L, title = "Recent Tie Winner"),
+                podcast(id = 3L, title = "Older Tie")
+            )
+        )
+        episodeDao.upsertAll(
+            listOf(
+                episode("one-a", podcastId = 1L, lastPlayedAt = 1_000L),
+                episode("one-b", podcastId = 1L, playbackPosition = 60_000L),
+                episode("one-c", podcastId = 1L, isPlayed = true),
+                episode("two-a", podcastId = 2L, lastPlayedAt = 5_000L),
+                episode("two-b", podcastId = 2L, lastPlayedAt = 4_000L),
+                episode("three-a", podcastId = 3L, lastPlayedAt = 3_000L),
+                episode("three-b", podcastId = 3L, lastPlayedAt = 2_000L),
+                episode("ignored", podcastId = 3L)
+            )
+        )
+
+        val topShows = episodeDao.observeTopShows(limit = 10).first()
+
+        assertEquals(listOf(1L, 2L, 3L), topShows.map { it.id })
+        assertEquals(listOf(3, 2, 2), topShows.map { it.playedEpisodeCount })
+    }
+
+    @Test
+    fun observeTopShows_omitsShowsWithoutPlaybackHistory() = runTest {
+        db.podcastDao().upsertAll(
+            listOf(
+                podcast(id = 1L, title = "Played"),
+                podcast(id = 2L, title = "Never Played")
+            )
+        )
+        episodeDao.upsertAll(
+            listOf(
+                episode("played", podcastId = 1L, playbackPosition = 60_000L),
+                episode("never", podcastId = 2L)
+            )
+        )
+
+        val topShows = episodeDao.observeTopShows(limit = 10).first()
+
+        assertEquals(listOf(1L), topShows.map { it.id })
+    }
+
+    private fun podcast(
+        id: Long = 1L,
+        title: String = "Podcast"
+    ) = PodcastEntity(
+        id = id,
+        title = title,
         artworkUrl = "",
         artistName = "Host",
         feedUrl = "https://example.com/feed.xml",
@@ -80,11 +132,13 @@ class EpisodeDaoTest {
 
     private fun episode(
         guid: String,
-        lastPlayedAt: Long,
-        isPlayed: Boolean = false
+        podcastId: Long = 1L,
+        lastPlayedAt: Long = 0L,
+        isPlayed: Boolean = false,
+        playbackPosition: Long = 0L
     ) = EpisodeEntity(
         guid = guid,
-        podcastId = 1L,
+        podcastId = podcastId,
         title = "Episode $guid",
         description = null,
         audioUrl = "https://example.com/$guid.mp3",
@@ -92,6 +146,7 @@ class EpisodeDaoTest {
         publishedAt = 0L,
         durationSeconds = 60,
         fileSizeBytes = 1_024L,
+        playbackPosition = playbackPosition,
         lastPlayedAt = lastPlayedAt,
         isPlayed = isPlayed
     )

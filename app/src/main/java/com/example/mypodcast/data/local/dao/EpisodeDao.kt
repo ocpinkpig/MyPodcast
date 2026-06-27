@@ -51,6 +51,31 @@ interface EpisodeDao {
     fun observeHistory(): Flow<List<EpisodeEntity>>
 
     @Query(
+        """
+        SELECT
+            podcasts.id AS id,
+            podcasts.title AS title,
+            podcasts.artworkUrl AS artworkUrl,
+            podcasts.artistName AS artistName,
+            podcasts.feedUrl AS feedUrl,
+            podcasts.description AS description,
+            podcasts.genres AS genres,
+            podcasts.episodeCount AS episodeCount,
+            COUNT(episodes.guid) AS playedEpisodeCount,
+            MAX(episodes.lastPlayedAt) AS latestPlayedAt
+        FROM episodes
+        INNER JOIN podcasts ON podcasts.id = episodes.podcastId
+        WHERE episodes.lastPlayedAt > 0
+            OR episodes.playbackPosition > 0
+            OR episodes.isPlayed = 1
+        GROUP BY podcasts.id
+        ORDER BY playedEpisodeCount DESC, latestPlayedAt DESC, podcasts.title ASC
+        LIMIT :limit
+        """
+    )
+    fun observeTopShows(limit: Int): Flow<List<TopShowRow>>
+
+    @Query(
         "SELECT podcastId, COUNT(*) AS count FROM episodes " +
             "WHERE publishedAt >= :threshold " +
             "AND playbackPosition < 60000 " +
@@ -61,3 +86,16 @@ interface EpisodeDao {
 }
 
 data class NewEpisodeCountRow(val podcastId: Long, val count: Int)
+
+data class TopShowRow(
+    val id: Long,
+    val title: String,
+    val artworkUrl: String,
+    val artistName: String,
+    val feedUrl: String,
+    val description: String?,
+    val genres: String,
+    val episodeCount: Int,
+    val playedEpisodeCount: Int,
+    val latestPlayedAt: Long
+)
