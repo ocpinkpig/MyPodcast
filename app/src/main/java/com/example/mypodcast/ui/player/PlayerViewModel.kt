@@ -121,6 +121,7 @@ class PlayerViewModel @Inject constructor(
         } else if (!state.isPlaying) {
             playerRepository.resume()
         }
+        // Seek after ensuring the target episode is active, regardless of branch.
         playerRepository.seekTo(positionMs)
     }
 

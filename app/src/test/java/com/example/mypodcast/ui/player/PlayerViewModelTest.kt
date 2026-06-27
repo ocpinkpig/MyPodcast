@@ -198,6 +198,28 @@ class PlayerViewModelTest {
 
         assertEquals(preview, repository.playedEpisode)
         assertEquals(40_000L, repository.seekedToMs)
+        assertEquals(false, repository.resumed)
+    }
+
+    @Test
+    fun seekToAndPlay_resumesWhenPreviewMatchesActiveEpisode() {
+        val current = episode("current")
+        val repository = FakePlayerRepository(
+            PlayerState(episode = current, previewEpisode = current, isPlaying = false)
+        )
+        val viewModel = PlayerViewModel(
+            repository,
+            GetTranscriptUseCase(FakeTranscriptRepository()),
+            PlayerViewFakeSavedMomentRepository(),
+            FakeTranscriptionMonitor(),
+            FakeTranscriptionLibraryRepository()
+        )
+
+        viewModel.seekToAndPlay(20_000L)
+
+        assertEquals(true, repository.resumed)
+        assertEquals(20_000L, repository.seekedToMs)
+        assertEquals(null, repository.playedEpisode)
     }
 
     @Test
