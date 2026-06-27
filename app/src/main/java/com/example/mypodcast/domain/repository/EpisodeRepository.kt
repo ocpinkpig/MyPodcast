@@ -1,6 +1,7 @@
 package com.example.mypodcast.domain.repository
 
 import com.example.mypodcast.domain.model.Episode
+import com.example.mypodcast.domain.model.TopShow
 import kotlinx.coroutines.flow.Flow
 
 interface EpisodeRepository {
@@ -14,4 +15,5 @@ interface EpisodeRepository {
     fun observeHistoryEpisodes(): Flow<List<Episode>>
     suspend fun touchLastPlayed(guid: String, ts: Long)
     fun observeNewEpisodeCounts(threshold: Long): Flow<Map<Long, Int>>
+    fun observeTopShows(limit: Int = 10): Flow<List<TopShow>>
 }

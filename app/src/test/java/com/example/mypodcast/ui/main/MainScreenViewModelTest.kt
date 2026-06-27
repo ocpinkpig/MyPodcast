@@ -2,6 +2,7 @@ package com.example.mypodcast.ui.main
 
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.PlayerState
+import com.example.mypodcast.domain.model.TopShow
 import com.example.mypodcast.domain.repository.EpisodeRepository
 import com.example.mypodcast.domain.repository.PlayerRepository
 import kotlinx.coroutines.flow.Flow
@@ -93,4 +94,5 @@ private class FakeEpisodeRepository : EpisodeRepository {
   override fun observeHistoryEpisodes(): Flow<List<Episode>> = flowOf(emptyList())
   override suspend fun touchLastPlayed(guid: String, ts: Long) = Unit
   override fun observeNewEpisodeCounts(threshold: Long): Flow<Map<Long, Int>> = flowOf(emptyMap())
+  override fun observeTopShows(limit: Int): Flow<List<TopShow>> = flowOf(emptyList())
 }

@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.Podcast
 import com.example.mypodcast.domain.model.SavedMoment
+import com.example.mypodcast.domain.model.TopShow
 import com.example.mypodcast.domain.repository.EpisodeRepository
 import com.example.mypodcast.domain.repository.LibraryRepository
 import com.example.mypodcast.domain.repository.PlayerRepository
@@ -297,6 +298,7 @@ private class FakeEpisodeRepository(
     override suspend fun touchLastPlayed(guid: String, ts: Long) = Unit
     override fun observeNewEpisodeCounts(threshold: Long): Flow<Map<Long, Int>> =
         flowOf(newEpisodeCounts)
+    override fun observeTopShows(limit: Int): Flow<List<TopShow>> = flowOf(emptyList())
 }
 
 private class FakeSavedMomentRepository(

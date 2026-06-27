@@ -2,10 +2,13 @@ package com.example.mypodcast.data.repository
 
 import com.example.mypodcast.data.local.dao.EpisodeDao
 import com.example.mypodcast.data.local.dao.PodcastDao
+import com.example.mypodcast.data.local.dao.TopShowRow
 import com.example.mypodcast.data.local.entity.EpisodeEntity
 import com.example.mypodcast.data.remote.rss.RssParser
 import com.example.mypodcast.data.remote.rss.model.RssEpisode
 import com.example.mypodcast.domain.model.Episode
+import com.example.mypodcast.domain.model.Podcast
+import com.example.mypodcast.domain.model.TopShow
 import com.example.mypodcast.domain.repository.EpisodeRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -102,6 +105,11 @@ class EpisodeRepositoryImpl @Inject constructor(
             rows.associate { it.podcastId to it.count }
         }
 
+    override fun observeTopShows(limit: Int): Flow<List<TopShow>> =
+        episodeDao.observeTopShows(limit).map { rows ->
+            rows.map { it.toDomain() }
+        }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun Flow<List<EpisodeEntity>>.withPodcastArtwork(): Flow<List<Episode>> =
         flatMapLatest { entities ->
@@ -145,5 +153,20 @@ class EpisodeRepositoryImpl @Inject constructor(
         isFavorite = isFavorite,
         transcriptUrl = transcriptUrl,
         transcriptType = transcriptType
+    )
+
+    private fun TopShowRow.toDomain() = TopShow(
+        podcast = Podcast(
+            id = id,
+            title = title,
+            artworkUrl = artworkUrl,
+            artistName = artistName,
+            feedUrl = feedUrl,
+            description = description,
+            genres = genres.split(",").filter { it.isNotBlank() },
+            episodeCount = episodeCount
+        ),
+        playedEpisodeCount = playedEpisodeCount,
+        latestPlayedAt = latestPlayedAt
     )
 }
