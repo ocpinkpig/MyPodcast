@@ -67,6 +67,13 @@ class HomeViewModelTest {
         assertEquals(null, viewModel.uiState.value.error)
     }
 
+    @Test
+    fun formatPlayedEpisodeCount_usesCompactSingularAndPluralLabels() {
+        assertEquals("1 played", formatPlayedEpisodeCount(1))
+        assertEquals("2 played", formatPlayedEpisodeCount(2))
+        assertEquals("12 played", formatPlayedEpisodeCount(12))
+    }
+
     private fun podcast(id: Long) = Podcast(
         id = id,
         title = "Podcast $id",
