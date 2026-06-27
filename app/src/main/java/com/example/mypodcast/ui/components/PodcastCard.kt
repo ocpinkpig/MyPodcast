@@ -35,7 +35,8 @@ fun PodcastCard(
     podcast: Podcast,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    newEpisodeCount: Int = 0
+    newEpisodeCount: Int = 0,
+    metadataText: String = podcast.artistName
 ) {
     Column(
         modifier = modifier
@@ -86,7 +87,7 @@ fun PodcastCard(
             overflow = TextOverflow.Ellipsis
         )
         Text(
-            text = podcast.artistName,
+            text = metadataText,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,

@@ -65,6 +65,57 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun latestEpisodePublishedAtByPodcastId_usesNewestSubscribedEpisodePerPodcast() = runTest {
+        val firstPodcast = podcast(id = 1L)
+        val secondPodcast = podcast(id = 2L)
+        val libraryRepository = FakeLibraryRepository(listOf(firstPodcast, secondPodcast))
+        val episodeRepository = FakeEpisodeRepository(
+            existingEpisodes = mapOf(
+                1L to listOf(
+                    episode("older", 1L).copy(publishedAt = 1_000L),
+                    episode("newer", 1L).copy(publishedAt = 3_000L)
+                ),
+                2L to listOf(
+                    episode("only", 2L).copy(publishedAt = 2_000L)
+                )
+            ),
+            fetchedEpisodes = emptyMap()
+        )
+        val viewModel = LibraryViewModel(
+            getLibrary = GetLibraryUseCase(libraryRepository),
+            libraryRepository = libraryRepository,
+            episodeRepository = episodeRepository,
+            savedMomentRepository = FakeSavedMomentRepository(),
+            downloadEpisodeUseCase = downloadEpisodeUseCase(libraryRepository),
+            playerRepository = FakePlayerRepository()
+        )
+        advanceUntilIdle()
+
+        assertEquals(
+            mapOf(
+                1L to 3_000L,
+                2L to 2_000L
+            ),
+            viewModel.uiState.value.latestEpisodePublishedAtByPodcastId
+        )
+    }
+
+    @Test
+    fun formatUpdatedAgo_returnsCompactRelativeLabels() {
+        val now = 2_000_000_000_000L
+
+        assertEquals("Updated just now", formatUpdatedAgo(now - 30_000L, now))
+        assertEquals("Updated 30m ago", formatUpdatedAgo(now - 30 * 60_000L, now))
+        assertEquals("Updated 6h ago", formatUpdatedAgo(now - 6 * 60 * 60_000L, now))
+        assertEquals("Updated 1d ago", formatUpdatedAgo(now - 24 * 60 * 60_000L, now))
+        assertEquals("Updated 2w ago", formatUpdatedAgo(now - 14 * 24 * 60 * 60_000L, now))
+        assertEquals("Updated 3mo ago", formatUpdatedAgo(now - 90 * 24 * 60 * 60_000L, now))
+        assertEquals("Updated 1y ago", formatUpdatedAgo(now - 365 * 24 * 60 * 60_000L, now))
+        assertEquals("Updated just now", formatUpdatedAgo(now + 60_000L, now))
+        assertEquals("", formatUpdatedAgo(0L, now))
+    }
+
+    @Test
     fun searchResults_includeMatchingSubscriptionsAndDownloads() = runTest {
         val podcast = podcast(id = 1L).copy(title = "Daily Tech", artistName = "Studio")
         val download = episode("daily-download", 2L).copy(title = "Daily Download")
