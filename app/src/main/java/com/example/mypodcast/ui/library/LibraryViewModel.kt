@@ -58,7 +58,8 @@ data class LibraryUiState(
     val searchResults: List<LibrarySearchResult> = emptyList(),
     val downloadStates: Map<String, DownloadState> = emptyMap(),
     val downloadedGuids: Set<String> = emptySet(),
-    val transcriptReadyGuids: Set<String> = emptySet()
+    val transcriptReadyGuids: Set<String> = emptySet(),
+    val latestEpisodePublishedAtByPodcastId: Map<Long, Long> = emptyMap()
 )
 
 @HiltViewModel
@@ -123,11 +124,20 @@ class LibraryViewModel @Inject constructor(
                 }
                 .collect { episodes ->
                     subscriptionEpisodes = episodes
+                    val latestPublishedAtByPodcastId = episodes
+                        .filter { it.publishedAt > 0L }
+                        .groupBy { it.podcastId }
+                        .mapValues { (_, podcastEpisodes) ->
+                            podcastEpisodes.maxOf { it.publishedAt }
+                        }
                     _uiState.update { state ->
-                        if (state.isSearchActive && state.searchQuery.isNotBlank()) {
-                            state.withSearchResults(subscriptionEpisodes)
+                        val updatedState = state.copy(
+                            latestEpisodePublishedAtByPodcastId = latestPublishedAtByPodcastId
+                        )
+                        if (updatedState.isSearchActive && updatedState.searchQuery.isNotBlank()) {
+                            updatedState.withSearchResults(subscriptionEpisodes)
                         } else {
-                            state
+                            updatedState
                         }
                     }
                 }

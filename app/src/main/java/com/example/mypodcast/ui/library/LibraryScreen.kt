@@ -288,7 +288,10 @@ fun LibraryScreen(
                                             PodcastCard(
                                                 podcast = podcast,
                                                 onClick = { onPodcastClick(podcast.id) },
-                                                newEpisodeCount = state.newEpisodeCounts[podcast.id] ?: 0
+                                                newEpisodeCount = state.newEpisodeCounts[podcast.id] ?: 0,
+                                                metadataText = formatUpdatedAgo(
+                                                    state.latestEpisodePublishedAtByPodcastId[podcast.id] ?: 0L
+                                                ).ifBlank { podcast.artistName }
                                             )
                                         }
                                     }
@@ -720,6 +723,25 @@ private fun metadataText(episode: Episode): String {
     return listOfNotNull(date, played)
         .filter { it.isNotBlank() }
         .joinToString(" - ")
+}
+
+internal fun formatUpdatedAgo(epochMillis: Long, nowMillis: Long = System.currentTimeMillis()): String {
+    if (epochMillis <= 0L) return ""
+
+    val elapsedMs = (nowMillis - epochMillis).coerceAtLeast(0L)
+    val minutes = elapsedMs / 60_000L
+    val hours = elapsedMs / (60L * 60_000L)
+    val days = elapsedMs / (24L * 60L * 60_000L)
+
+    return when {
+        minutes < 1L -> "Updated just now"
+        hours < 1L -> "Updated ${minutes}m ago"
+        days < 1L -> "Updated ${hours}h ago"
+        days < 7L -> "Updated ${days}d ago"
+        days < 30L -> "Updated ${days / 7L}w ago"
+        days < 365L -> "Updated ${days / 30L}mo ago"
+        else -> "Updated ${days / 365L}y ago"
+    }
 }
 
 private fun formatPublishedDate(epochMillis: Long): String {
