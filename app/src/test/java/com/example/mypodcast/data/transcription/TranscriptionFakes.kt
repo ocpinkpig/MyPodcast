@@ -10,6 +10,11 @@ import java.util.Locale
  * Scripted PCM source: emits [chunks] without real-time pacing (tests must not
  * sleep). Each entry is (byteCount, endPositionMs).
  */
+/** Feature flags fake; transcription enabled by default for behavior tests. */
+class FakeFeatureFlags(enabled: Boolean = true) : com.example.mypodcast.domain.FeatureFlags {
+    override val onDeviceTranscriptionEnabled: Boolean = enabled
+}
+
 class FakePcmSource(private val chunks: List<Pair<Int, Long>>) : PcmSource {
     override fun stream(startMs: Long): Flow<PcmChunk> = flow {
         chunks.forEach { (size, endMs) -> emit(PcmChunk(ByteArray(size), endMs)) }

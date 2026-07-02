@@ -9,6 +9,7 @@ import com.example.mypodcast.data.remote.transcript.VttParser
 import com.example.mypodcast.data.remote.transcript.transcriptFormatOf
 import com.example.mypodcast.data.transcription.GeneratedTranscriptStore
 import com.example.mypodcast.di.TranscriptFilesDir
+import com.example.mypodcast.domain.FeatureFlags
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.Transcript
 import com.example.mypodcast.domain.repository.TranscriptRepository
@@ -30,7 +31,8 @@ import javax.inject.Inject
 class TranscriptRepositoryImpl @Inject constructor(
     @TranscriptFilesDir private val filesDir: File,
     private val okHttpClient: OkHttpClient,
-    private val generatedTranscriptStore: GeneratedTranscriptStore
+    private val generatedTranscriptStore: GeneratedTranscriptStore,
+    private val featureFlags: FeatureFlags
 ) : TranscriptRepository {
 
     override suspend fun getTranscript(episode: Episode): Result<Transcript> =
@@ -43,8 +45,9 @@ class TranscriptRepositoryImpl @Inject constructor(
             }
         }
 
-    /** On-device generated transcript, or the empty placeholder when absent. */
+    /** On-device generated transcript, or the empty placeholder when absent or disabled. */
     private fun generatedTranscript(guid: String): Transcript {
+        if (!featureFlags.onDeviceTranscriptionEnabled) return Transcript(emptyList(), isSynced = false)
         val generated = generatedTranscriptStore.read(guid)
             ?: return Transcript(emptyList(), isSynced = false)
         return Transcript(

@@ -23,7 +23,11 @@ sealed interface TranscriberEvent {
  * from the amount of audio fed so far ([PcmChunk.endPositionMs]). Cues are
  * contiguous: each starts where the previous one ended.
  */
-class EpisodeTranscriber(private val engine: SpeechTranscriptionEngine) {
+class EpisodeTranscriber(
+    private val engine: SpeechTranscriptionEngine,
+    /** Post-processes each finalized segment (e.g. Traditional→Simplified). */
+    private val textTransform: (String) -> String = { it }
+) {
 
     fun transcribe(source: PcmSource, startMs: Long, locale: Locale): Flow<TranscriberEvent> =
         channelFlow {
@@ -32,7 +36,8 @@ class EpisodeTranscriber(private val engine: SpeechTranscriptionEngine) {
                 var lastCueEndMs = startMs
 
                 val resultsJob = launch {
-                    session.results.collect { text ->
+                    session.results.collect { rawText ->
+                        val text = textTransform(rawText)
                         val end = lastFedMs
                         // The engine can finalize 60-90s of speech as one block;
                         // sentence-split it so highlight/seek granularity stays useful.

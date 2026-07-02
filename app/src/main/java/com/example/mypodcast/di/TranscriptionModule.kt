@@ -1,12 +1,14 @@
 package com.example.mypodcast.di
 
 import android.content.Context
+import com.example.mypodcast.data.config.DefaultFeatureFlags
 import com.example.mypodcast.data.transcription.GeneratedTranscriptStore
 import com.example.mypodcast.data.transcription.MlKitSpeechEngine
 import com.example.mypodcast.data.transcription.Mp3PcmStreamer
 import com.example.mypodcast.data.transcription.PcmSourceFactory
 import com.example.mypodcast.data.transcription.SpeechTranscriptionEngine
 import com.example.mypodcast.data.transcription.TranscriptionSessionManager
+import com.example.mypodcast.domain.FeatureFlags
 import com.example.mypodcast.domain.transcription.TranscriptionMonitor
 import dagger.Binds
 import dagger.Module
@@ -36,6 +38,10 @@ abstract class TranscriptionModule {
 
     @Binds
     abstract fun bindTranscriptionMonitor(impl: TranscriptionSessionManager): TranscriptionMonitor
+
+    @Binds
+    @Singleton
+    abstract fun bindFeatureFlags(impl: DefaultFeatureFlags): FeatureFlags
 
     companion object {
         @Provides

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.PlayerState
 import com.example.mypodcast.domain.model.Transcript
+import com.example.mypodcast.domain.FeatureFlags
 import com.example.mypodcast.domain.repository.LibraryRepository
 import com.example.mypodcast.domain.repository.PlayerRepository
 import com.example.mypodcast.domain.repository.SavedMomentRepository
@@ -26,8 +27,12 @@ class PlayerViewModel @Inject constructor(
     private val getTranscript: GetTranscriptUseCase,
     private val savedMomentRepository: SavedMomentRepository,
     private val transcriptionMonitor: TranscriptionMonitor,
-    private val libraryRepository: LibraryRepository
+    private val libraryRepository: LibraryRepository,
+    featureFlags: FeatureFlags
 ) : ViewModel() {
+
+    /** Whether on-device transcript generation is enabled (gates the opt-in UI). */
+    val transcriptionEnabled: Boolean = featureFlags.onDeviceTranscriptionEnabled
 
     val playerState: StateFlow<PlayerState> = playerRepository.playerState
 

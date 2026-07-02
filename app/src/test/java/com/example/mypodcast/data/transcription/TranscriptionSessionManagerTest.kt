@@ -40,6 +40,16 @@ class TranscriptionSessionManagerTest {
         library: FakeTranscriptionLibraryRepository,
         engine: FakeSpeechEngine,
         sourcesByPath: Map<String, PcmSource>
+    ): Pair<TranscriptionSessionManager, GeneratedTranscriptStore> = managerWithFlags(
+        player, library, engine, sourcesByPath, FakeFeatureFlags(enabled = true)
+    )
+
+    private fun managerWithFlags(
+        player: FakePlayerRepository,
+        library: FakeTranscriptionLibraryRepository,
+        engine: FakeSpeechEngine,
+        sourcesByPath: Map<String, PcmSource>,
+        featureFlags: FakeFeatureFlags
     ): Pair<TranscriptionSessionManager, GeneratedTranscriptStore> {
         val store = GeneratedTranscriptStore(tmp.root)
         val mgr = TranscriptionSessionManager(
@@ -50,7 +60,8 @@ class TranscriptionSessionManagerTest {
             pcmSourceFactory = object : PcmSourceFactory {
                 override fun create(filePath: String): PcmSource =
                     sourcesByPath.getValue(filePath)
-            }
+            },
+            featureFlags = featureFlags
         )
         return mgr to store
     }
@@ -107,6 +118,27 @@ class TranscriptionSessionManagerTest {
         assertEquals(false, saved!!.isComplete)
         assertEquals("first part", saved.cues.single().text)
         assertTrue(saved.transcribedUpToMs >= 1_000L)
+        coroutineContext.cancelChildren()
+    }
+
+    @Test
+    fun `does nothing when the feature flag is disabled`() = runTest {
+        val player = FakePlayerRepository()
+        val library = FakeTranscriptionLibraryRepository(mapOf("ep-1" to "/files/ep-1.mp3"))
+        val engine = FakeSpeechEngine(listOf(32_000L to "should not run"))
+        val source = FakePcmSource(listOf(32_000 to 1_000L))
+        val (mgr, store) = managerWithFlags(
+            player, library, engine, mapOf("/files/ep-1.mp3" to source),
+            FakeFeatureFlags(enabled = false)
+        )
+
+        mgr.start(this)
+        player.state.value = PlayerState(episode = episode(), isPlaying = true)
+        advanceUntilIdle()
+
+        assertNull(store.read("ep-1"))
+        assertTrue(engine.openedSessions.isEmpty())
+        assertTrue(library.statusUpdates.isEmpty())
         coroutineContext.cancelChildren()
     }
 
@@ -201,14 +233,20 @@ class TranscriptionSessionManagerTest {
     }
 
     @Test
-    fun `does not rerun an already complete transcript`() = runTest {
+    fun `does not rerun a complete transcript from the current engine`() = runTest {
         val player = FakePlayerRepository()
         val library = FakeTranscriptionLibraryRepository(mapOf("ep-1" to "/files/ep-1.mp3"))
         val engine = FakeSpeechEngine(emptyList())
         val (mgr, store) = manager(player, library, engine, emptyMap())
         store.write(
             "ep-1",
-            GeneratedTranscript(emptyList(), 120_000L, isComplete = true, engineVersion = "x")
+            GeneratedTranscript(
+                cues = emptyList(),
+                transcribedUpToMs = 120_000L,
+                isComplete = true,
+                engineVersion = SpeechTranscriptionEngine.VERSION,
+                locale = java.util.Locale.getDefault().toLanguageTag()
+            )
         )
 
         mgr.start(this)
@@ -216,6 +254,36 @@ class TranscriptionSessionManagerTest {
         advanceUntilIdle()
 
         assertTrue(engine.openedSessions.isEmpty())
+        coroutineContext.cancelChildren()
+    }
+
+    @Test
+    fun `regenerates a complete transcript from an older engine version`() = runTest {
+        val player = FakePlayerRepository()
+        val library = FakeTranscriptionLibraryRepository(mapOf("ep-1" to "/files/ep-1.mp3"))
+        val engine = FakeSpeechEngine(listOf(32_000L to "regenerated in advanced mode"))
+        val source = FakePcmSource(listOf(32_000 to 1_000L))
+        val (mgr, store) = manager(player, library, engine, mapOf("/files/ep-1.mp3" to source))
+        // A COMPLETE transcript from the old basic-mode engine must still be
+        // regenerated — this is the exact bug from on-device testing.
+        store.write(
+            "ep-1",
+            GeneratedTranscript(
+                cues = listOf(com.example.mypodcast.domain.model.TranscriptCue(0, 120_000, "bad basic text")),
+                transcribedUpToMs = 120_000L,
+                isComplete = true,
+                engineVersion = "mlkit-genai-1.0.0-alpha1",
+                locale = java.util.Locale.getDefault().toLanguageTag()
+            )
+        )
+
+        mgr.start(this)
+        player.state.value = PlayerState(episode = episode(), isPlaying = true)
+        advanceUntilIdle()
+
+        val saved = store.read("ep-1")!!
+        assertEquals("regenerated in advanced mode", saved.cues.single().text)
+        assertEquals(SpeechTranscriptionEngine.VERSION, saved.engineVersion)
         coroutineContext.cancelChildren()
     }
 
@@ -296,6 +364,37 @@ class TranscriptionSessionManagerTest {
         assertEquals("重新开始的转写内容在这里。", saved.cues.single().text)
         assertEquals(0L, saved.cues.single().startMs)
         assertEquals("cmn-Hans-CN", saved.locale)
+        coroutineContext.cancelChildren()
+    }
+
+    @Test
+    fun `partial progress from an older engine version is discarded`() = runTest {
+        val player = FakePlayerRepository()
+        val library = FakeTranscriptionLibraryRepository(mapOf("ep-1" to "/files/ep-1.mp3"))
+        val engine = FakeSpeechEngine(listOf(32_000L to "regenerated"))
+        val source = FakePcmSource(listOf(32_000 to 1_000L))
+        val (mgr, store) = manager(player, library, engine, mapOf("/files/ep-1.mp3" to source))
+        // Same locale, but produced by an older engine/mode — must regenerate.
+        store.write(
+            "ep-1",
+            GeneratedTranscript(
+                cues = listOf(com.example.mypodcast.domain.model.TranscriptCue(0, 60_000, "bad basic-mode text")),
+                transcribedUpToMs = 60_000,
+                isComplete = false,
+                engineVersion = "old-version",
+                locale = java.util.Locale.getDefault().toLanguageTag()
+            )
+        )
+
+        mgr.start(this)
+        player.state.value = PlayerState(episode = episode(), isPlaying = true)
+        advanceUntilIdle()
+
+        val saved = store.read("ep-1")!!
+        assertEquals(1, saved.cues.size)
+        assertEquals("regenerated", saved.cues.single().text)
+        assertEquals(0L, saved.cues.single().startMs)
+        assertEquals(SpeechTranscriptionEngine.VERSION, saved.engineVersion)
         coroutineContext.cancelChildren()
     }
 

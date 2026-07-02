@@ -1,6 +1,7 @@
 package com.example.mypodcast.data.transcription
 
 import android.util.Log
+import com.example.mypodcast.domain.FeatureFlags
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.TranscriptStatus
 import com.example.mypodcast.domain.repository.LibraryRepository
@@ -36,7 +37,8 @@ class TranscriptionSessionManager @Inject constructor(
     private val libraryRepository: LibraryRepository,
     private val store: GeneratedTranscriptStore,
     private val engine: SpeechTranscriptionEngine,
-    private val pcmSourceFactory: PcmSourceFactory
+    private val pcmSourceFactory: PcmSourceFactory,
+    private val featureFlags: FeatureFlags
 ) : TranscriptionMonitor {
 
     private val _live = MutableStateFlow<LiveTranscription?>(null)
@@ -47,6 +49,7 @@ class TranscriptionSessionManager @Inject constructor(
     private val availabilityByLocale = mutableMapOf<String, EngineAvailability>()
 
     fun start(scope: CoroutineScope) {
+        if (!featureFlags.onDeviceTranscriptionEnabled) return
         if (watchJob?.isActive == true) return
         watchJob = scope.launch {
             combine(
@@ -90,12 +93,22 @@ class TranscriptionSessionManager @Inject constructor(
             return
         }
         val stored = store.read(episode.guid)
-        if (stored?.isComplete == true) return
-        // Partial progress recorded under a different (or unknown legacy)
-        // locale was produced by the wrong recognition model — start over.
-        val resumed = stored?.takeIf { it.locale == localeTag }
+        // Progress is only reusable when produced by the same recognizer locale
+        // AND engine version. A different locale, or an older engine/mode (e.g. a
+        // basic-mode transcript from before the advanced-mode switch), is stale —
+        // regenerate it even if it was marked complete.
+        val matchesCurrent = stored != null &&
+            stored.locale == localeTag &&
+            stored.engineVersion == SpeechTranscriptionEngine.VERSION
+        if (matchesCurrent && stored!!.isComplete) return
+        val resumed = stored?.takeIf { matchesCurrent }
         if (stored != null && resumed == null) {
-            Log.d(TAG, "discarding ${episode.guid} progress (locale ${stored.locale} -> $localeTag)")
+            Log.d(
+                TAG,
+                "discarding ${episode.guid} progress " +
+                    "(locale ${stored.locale}->$localeTag, version ${stored.engineVersion}, " +
+                    "wasComplete=${stored.isComplete})"
+            )
         }
         Log.d(TAG, "session start ${episode.guid} from ${resumed?.transcribedUpToMs ?: 0}ms locale=$localeTag")
 
@@ -123,7 +136,7 @@ class TranscriptionSessionManager @Inject constructor(
         }
 
         try {
-            EpisodeTranscriber(engine)
+            EpisodeTranscriber(engine, textTransform = simplifyTransformForLocale(localeTag))
                 .transcribe(pcmSourceFactory.create(filePath), startMs = upToMs, locale = locale)
                 .collect { event ->
                     when (event) {

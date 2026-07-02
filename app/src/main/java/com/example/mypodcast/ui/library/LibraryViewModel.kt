@@ -9,6 +9,7 @@ import com.example.mypodcast.domain.repository.EpisodeRepository
 import com.example.mypodcast.domain.repository.LibraryRepository
 import com.example.mypodcast.domain.repository.PlayerRepository
 import com.example.mypodcast.domain.repository.SavedMomentRepository
+import com.example.mypodcast.domain.FeatureFlags
 import com.example.mypodcast.domain.model.DownloadState
 import com.example.mypodcast.domain.model.TranscriptStatus
 import com.example.mypodcast.domain.usecase.episode.DownloadEpisodeUseCase
@@ -69,7 +70,8 @@ class LibraryViewModel @Inject constructor(
     private val episodeRepository: EpisodeRepository,
     private val savedMomentRepository: SavedMomentRepository,
     private val downloadEpisodeUseCase: DownloadEpisodeUseCase,
-    private val playerRepository: PlayerRepository
+    private val playerRepository: PlayerRepository,
+    private val featureFlags: FeatureFlags
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LibraryUiState())
@@ -98,14 +100,16 @@ class LibraryViewModel @Inject constructor(
                 _uiState.update { it.copy(savedMoments = moments) }
             }
         }
-        viewModelScope.launch {
-            libraryRepository.observeTranscriptStatuses().collect { statuses ->
-                _uiState.update {
-                    it.copy(
-                        transcriptReadyGuids = statuses
-                            .filterValues { status -> status == TranscriptStatus.COMPLETE }
-                            .keys
-                    )
+        if (featureFlags.onDeviceTranscriptionEnabled) {
+            viewModelScope.launch {
+                libraryRepository.observeTranscriptStatuses().collect { statuses ->
+                    _uiState.update {
+                        it.copy(
+                            transcriptReadyGuids = statuses
+                                .filterValues { status -> status == TranscriptStatus.COMPLETE }
+                                .keys
+                        )
+                    }
                 }
             }
         }

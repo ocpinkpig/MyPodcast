@@ -58,7 +58,8 @@ class LibraryViewModelTest {
             episodeRepository = episodeRepository,
             savedMomentRepository = FakeSavedMomentRepository(),
             downloadEpisodeUseCase = downloadEpisodeUseCase(libraryRepository),
-            playerRepository = FakePlayerRepository()
+            playerRepository = FakePlayerRepository(),
+            featureFlags = com.example.mypodcast.data.transcription.FakeFeatureFlags()
         )
         advanceUntilIdle()
 
@@ -133,7 +134,8 @@ class LibraryViewModelTest {
             ),
             savedMomentRepository = FakeSavedMomentRepository(),
             downloadEpisodeUseCase = downloadEpisodeUseCase(libraryRepository),
-            playerRepository = FakePlayerRepository()
+            playerRepository = FakePlayerRepository(),
+            featureFlags = com.example.mypodcast.data.transcription.FakeFeatureFlags()
         )
         advanceUntilIdle()
 
@@ -162,7 +164,8 @@ class LibraryViewModelTest {
             ),
             savedMomentRepository = FakeSavedMomentRepository(),
             downloadEpisodeUseCase = downloadEpisodeUseCase(libraryRepository),
-            playerRepository = FakePlayerRepository()
+            playerRepository = FakePlayerRepository(),
+            featureFlags = com.example.mypodcast.data.transcription.FakeFeatureFlags()
         )
         advanceUntilIdle()
 
@@ -189,7 +192,8 @@ class LibraryViewModelTest {
             ),
             savedMomentRepository = FakeSavedMomentRepository(),
             downloadEpisodeUseCase = downloadEpisodeUseCase(libraryRepository),
-            playerRepository = FakePlayerRepository()
+            playerRepository = FakePlayerRepository(),
+            featureFlags = com.example.mypodcast.data.transcription.FakeFeatureFlags()
         )
         advanceUntilIdle()
 
