@@ -1,6 +1,8 @@
 package com.example.mypodcast.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
 import com.example.mypodcast.data.local.entity.PodcastEntity
@@ -19,4 +21,10 @@ interface PodcastDao {
 
     @Query("SELECT * FROM podcasts WHERE id IN (:ids)")
     fun observeByIds(ids: List<Long>): Flow<List<PodcastEntity>>
+
+    @Query("SELECT * FROM podcasts WHERE id IN (:ids)")
+    suspend fun getByIds(ids: List<Long>): List<PodcastEntity>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAllIgnore(podcasts: List<PodcastEntity>)
 }

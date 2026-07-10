@@ -1,6 +1,8 @@
 package com.example.mypodcast.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
 import com.example.mypodcast.data.local.entity.EpisodeEntity
@@ -83,6 +85,44 @@ interface EpisodeDao {
             "GROUP BY podcastId"
     )
     fun observeNewEpisodeCounts(threshold: Long): Flow<List<NewEpisodeCountRow>>
+
+    @Query(
+        """
+        SELECT DISTINCT episodes.* FROM episodes
+        LEFT JOIN queue_items ON queue_items.episodeGuid = episodes.guid
+        LEFT JOIN saved_moments ON saved_moments.episodeGuid = episodes.guid
+        LEFT JOIN downloaded_episodes ON downloaded_episodes.episodeGuid = episodes.guid
+        WHERE episodes.isFavorite = 1
+            OR episodes.isPlayed = 1
+            OR episodes.playbackPosition > 0
+            OR episodes.lastPlayedAt > 0
+            OR queue_items.episodeGuid IS NOT NULL
+            OR saved_moments.episodeGuid IS NOT NULL
+            OR downloaded_episodes.episodeGuid IS NOT NULL
+        """
+    )
+    suspend fun getAllWithUserState(): List<EpisodeEntity>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAllIgnore(episodes: List<EpisodeEntity>)
+
+    @Query(
+        """
+        UPDATE episodes SET
+            isFavorite = CASE WHEN :isFavorite THEN 1 ELSE isFavorite END,
+            isPlayed = CASE WHEN :isPlayed THEN 1 ELSE isPlayed END,
+            playbackPosition = MAX(playbackPosition, :playbackPosition),
+            lastPlayedAt = MAX(lastPlayedAt, :lastPlayedAt)
+        WHERE guid = :guid
+        """
+    )
+    suspend fun mergeUserState(
+        guid: String,
+        isFavorite: Boolean,
+        isPlayed: Boolean,
+        playbackPosition: Long,
+        lastPlayedAt: Long
+    )
 }
 
 data class NewEpisodeCountRow(val podcastId: Long, val count: Int)
