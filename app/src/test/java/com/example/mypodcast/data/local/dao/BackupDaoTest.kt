@@ -2,6 +2,7 @@ package com.example.mypodcast.data.local.dao
 
 import androidx.room.Room
 import com.example.mypodcast.data.local.AppDatabase
+import com.example.mypodcast.data.local.entity.DownloadedEpisodeEntity
 import com.example.mypodcast.data.local.entity.EpisodeEntity
 import com.example.mypodcast.data.local.entity.PodcastEntity
 import com.example.mypodcast.data.local.entity.QueueItemEntity
@@ -102,6 +103,56 @@ class BackupDaoTest {
         val guids = db.episodeDao().getAllWithUserState().map { it.guid }.toSet()
 
         assertEquals(setOf("fav", "played", "progress", "history", "queued", "moment"), guids)
+    }
+
+    @Test
+    fun getAllWithUserState_returnsEpisodeOnceDespiteMultipleJoinMatches() = runTest {
+        db.podcastDao().upsert(podcast())
+        db.episodeDao().upsertAll(listOf(episode("multi")))
+        db.queueDao().insert(QueueItemEntity("multi", 0))
+        db.savedMomentDao().insert(
+            SavedMomentEntity(
+                episodeGuid = "multi",
+                positionMs = 1_000L,
+                clipStartMs = 0L,
+                clipEndMs = 2_000L,
+                transcriptText = null,
+                createdAt = 1L
+            )
+        )
+        db.savedMomentDao().insert(
+            SavedMomentEntity(
+                episodeGuid = "multi",
+                positionMs = 3_000L,
+                clipStartMs = 2_000L,
+                clipEndMs = 4_000L,
+                transcriptText = null,
+                createdAt = 2L
+            )
+        )
+
+        val episodes = db.episodeDao().getAllWithUserState()
+
+        assertEquals(1, episodes.size)
+        assertEquals("multi", episodes.single().guid)
+    }
+
+    @Test
+    fun getAllWithUserState_includesDownloadedOnlyEpisode() = runTest {
+        db.podcastDao().upsert(podcast())
+        db.episodeDao().upsertAll(listOf(episode("downloaded-only")))
+        db.downloadedEpisodeDao().insert(
+            DownloadedEpisodeEntity(
+                episodeGuid = "downloaded-only",
+                podcastId = 1L,
+                localFilePath = "/x",
+                fileSizeBytes = 1L
+            )
+        )
+
+        val guids = db.episodeDao().getAllWithUserState().map { it.guid }
+
+        assertEquals(listOf("downloaded-only"), guids)
     }
 
     @Test
