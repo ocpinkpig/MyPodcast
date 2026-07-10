@@ -151,4 +151,96 @@ class BackupRepositoryImplTest {
 
         assertEquals(1, summary.downloadsToRestore)
     }
+
+    @Test
+    fun import_intoEmptyDatabase_restoresEverything() = runTest {
+        seedLibrary()
+        val backup = repository.createBackup()
+
+        db.clearAllTables()
+        val result = repository.import(backup)
+
+        // Checked against the episodes table directly: "downloaded" carries no
+        // user-state flags and its download row is deliberately not restored
+        // (it is reported via downloadsToRestore instead), so it would never
+        // surface through getAllWithUserState().
+        assertEquals(
+            setOf("fav", "downloaded"),
+            db.episodeDao().getByGuids(listOf("fav", "downloaded")).map { it.guid }.toSet()
+        )
+        assertEquals(listOf(1L), db.subscriptionDao().getAll().map { it.podcastId })
+        assertEquals("Show 1", db.podcastDao().getById(1L)?.title)
+        assertEquals(listOf("fav"), db.queueDao().getQueueItemsOrdered().map { it.episodeGuid })
+        assertEquals(1, db.savedMomentDao().getAll().size)
+        assertEquals(listOf("downloaded"), result.downloadsToRestore)
+        assertEquals(listOf(1L), result.feedTargets.map { it.podcastId })
+        assertEquals(listOf("https://feed/1.xml"), result.feedTargets.map { it.feedUrl })
+    }
+
+    @Test
+    fun import_mergesUserStateWithoutClobberingFresherLocalData() = runTest {
+        seedLibrary()
+        val backup = repository.createBackup()
+
+        // Local state moved on after the backup was taken.
+        db.episodeDao().updateFavorite("fav", false)
+        db.episodeDao().updateProgress("fav", 9_000L, true)
+        repository.import(backup)
+
+        val merged = db.episodeDao().getByGuid("fav")!!
+        assertTrue(merged.isFavorite)
+        assertTrue(merged.isPlayed)
+        assertEquals(9_000L, merged.playbackPosition)
+    }
+
+    @Test
+    fun import_appendsQueueItemsWithoutDuplicates() = runTest {
+        seedLibrary()
+        db.episodeDao().upsertAll(listOf(episode("local-queued", 1L)))
+        val backup = repository.createBackup()
+
+        db.queueDao().clear()
+        db.queueDao().insert(QueueItemEntity("local-queued", 0))
+        repository.import(backup)
+
+        val queue = db.queueDao().getQueueItemsOrdered()
+        assertEquals(listOf("local-queued", "fav"), queue.map { it.episodeGuid })
+        assertEquals(listOf(0, 1), queue.map { it.position })
+    }
+
+    @Test
+    fun import_isIdempotentForMoments() = runTest {
+        seedLibrary()
+        val backup = repository.createBackup()
+
+        repository.import(backup)
+        repository.import(backup)
+
+        assertEquals(1, db.savedMomentDao().getAll().size)
+    }
+
+    @Test
+    fun import_skipsAlreadyDownloadedEpisodes() = runTest {
+        seedLibrary()
+        val backup = repository.createBackup()
+
+        val result = repository.import(backup)
+
+        assertEquals(emptyList<String>(), result.downloadsToRestore)
+    }
+
+    @Test
+    fun import_dropsEpisodesWithUnknownPodcast() = runTest {
+        seedLibrary()
+        val backup = repository.createBackup()
+        val corrupted = backup.copy(
+            episodes = backup.episodes + backup.episodes.first().copy(guid = "orphan", podcastId = 999L),
+            podcasts = backup.podcasts
+        )
+
+        db.clearAllTables()
+        repository.import(corrupted)
+
+        assertEquals(null, db.episodeDao().getByGuid("orphan"))
+    }
 }
