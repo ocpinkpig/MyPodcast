@@ -1,11 +1,13 @@
 package com.example.mypodcast.di
 
+import com.example.mypodcast.data.backup.BackupRepositoryImpl
 import com.example.mypodcast.data.repository.EpisodeRepositoryImpl
 import com.example.mypodcast.data.repository.LibraryRepositoryImpl
 import com.example.mypodcast.data.repository.PodcastRepositoryImpl
 import com.example.mypodcast.data.repository.PlayerRepositoryImpl
 import com.example.mypodcast.data.repository.SavedMomentRepositoryImpl
 import com.example.mypodcast.data.repository.TranscriptRepositoryImpl
+import com.example.mypodcast.domain.repository.BackupRepository
 import com.example.mypodcast.domain.repository.EpisodeRepository
 import com.example.mypodcast.domain.repository.LibraryRepository
 import com.example.mypodcast.domain.repository.PlayerRepository
@@ -45,4 +47,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSavedMomentRepository(impl: SavedMomentRepositoryImpl): SavedMomentRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBackupRepository(impl: BackupRepositoryImpl): BackupRepository
 }
