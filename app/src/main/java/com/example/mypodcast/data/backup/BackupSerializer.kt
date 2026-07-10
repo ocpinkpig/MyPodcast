@@ -40,6 +40,9 @@ class BackupSerializer @Inject constructor() {
 
         val version = raw.formatVersion
             ?: throw InvalidBackupException("Not a MyPodcast backup file")
+        if (version < 1) {
+            throw InvalidBackupException("Not a MyPodcast backup file")
+        }
         if (version > LibraryBackup.FORMAT_VERSION) {
             throw UnsupportedBackupVersionException(version)
         }

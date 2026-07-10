@@ -88,6 +88,46 @@ class BackupSerializerTest {
         )
     }
 
+    @Test(expected = InvalidBackupException::class)
+    fun read_rejectsNonPositiveFormatVersion() {
+        read("""{"formatVersion": 0}""")
+    }
+
+    @Test(expected = InvalidBackupException::class)
+    fun read_rejectsNegativeFormatVersion() {
+        read("""{"formatVersion": -1}""")
+    }
+
+    @Test(expected = InvalidBackupException::class)
+    fun read_rejectsPodcastMissingId() {
+        read("""{"formatVersion": 1, "podcasts": [{"title": "t", "feedUrl": "f"}]}""")
+    }
+
+    @Test(expected = InvalidBackupException::class)
+    fun read_rejectsPodcastMissingFeedUrl() {
+        read("""{"formatVersion": 1, "podcasts": [{"id": 1, "title": "t"}]}""")
+    }
+
+    @Test(expected = InvalidBackupException::class)
+    fun read_rejectsSubscriptionMissingPodcastId() {
+        read("""{"formatVersion": 1, "subscriptions": [{"subscribedAt": 1}]}""")
+    }
+
+    @Test(expected = InvalidBackupException::class)
+    fun read_rejectsDownloadMissingEpisodeGuid() {
+        read("""{"formatVersion": 1, "downloads": [{"podcastId": 1, "downloadedAt": 1}]}""")
+    }
+
+    @Test(expected = InvalidBackupException::class)
+    fun read_rejectsQueueItemMissingEpisodeGuid() {
+        read("""{"formatVersion": 1, "queue": [{"position": 0}]}""")
+    }
+
+    @Test(expected = InvalidBackupException::class)
+    fun read_rejectsMomentMissingEpisodeGuid() {
+        read("""{"formatVersion": 1, "moments": [{"positionMs": 1, "createdAt": 1}]}""")
+    }
+
     @Test
     fun read_rejectsNewerFormatVersion() {
         val error = runCatching { read("""{"formatVersion": 99}""") }.exceptionOrNull()
