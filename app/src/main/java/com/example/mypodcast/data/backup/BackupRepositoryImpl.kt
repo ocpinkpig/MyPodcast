@@ -80,17 +80,21 @@ class BackupRepositoryImpl @Inject constructor(
     override suspend fun import(backup: LibraryBackup): ImportResult = db.withTransaction {
         podcastDao.insertAllIgnore(backup.podcasts.map { it.toEntity() })
 
-        backup.subscriptions.forEach {
-            subscriptionDao.subscribe(SubscriptionEntity(podcastId = it.podcastId, subscribedAt = it.subscribedAt))
-        }
-
-        // Episodes whose podcast is unknown even after the podcast merge would
-        // violate the FK on episodes.podcastId; drop them instead of failing.
-        val referencedIds = backup.episodes.map { it.podcastId }.distinct()
+        // Rows referencing a podcast that is unknown even after the podcast
+        // merge would be left dangling (subscriptions) or violate the FK on
+        // episodes.podcastId (episodes); drop them instead of failing.
+        val referencedIds = (backup.episodes.map { it.podcastId } + backup.subscriptions.map { it.podcastId }).distinct()
         val knownPodcastIds = referencedIds.chunked(500)
             .flatMap { podcastDao.getByIds(it) }
             .map { it.id }
             .toSet()
+
+        backup.subscriptions
+            .filter { it.podcastId in knownPodcastIds }
+            .forEach {
+                subscriptionDao.subscribe(SubscriptionEntity(podcastId = it.podcastId, subscribedAt = it.subscribedAt))
+            }
+
         val importableEpisodes = backup.episodes.filter { it.podcastId in knownPodcastIds }
 
         val existingGuids = importableEpisodes.map { it.guid }
@@ -143,9 +147,11 @@ class BackupRepositoryImpl @Inject constructor(
             }
 
         val podcastsById = backup.podcasts.associateBy { it.id }
-        val feedTargets = backup.subscriptions.mapNotNull { sub ->
-            podcastsById[sub.podcastId]?.let { FeedTarget(it.id, it.feedUrl) }
-        }
+        val feedTargets = backup.subscriptions
+            .filter { it.podcastId in knownPodcastIds }
+            .mapNotNull { sub ->
+                podcastsById[sub.podcastId]?.let { FeedTarget(it.id, it.feedUrl) }
+            }
 
         ImportResult(downloadsToRestore = downloadsToRestore, feedTargets = feedTargets)
     }

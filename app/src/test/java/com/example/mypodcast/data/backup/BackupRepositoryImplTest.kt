@@ -8,6 +8,7 @@ import com.example.mypodcast.data.local.entity.PodcastEntity
 import com.example.mypodcast.data.local.entity.QueueItemEntity
 import com.example.mypodcast.data.local.entity.SavedMomentEntity
 import com.example.mypodcast.data.local.entity.SubscriptionEntity
+import com.example.mypodcast.domain.model.backup.BackupSubscription
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertTrue
 import kotlinx.coroutines.test.runTest
@@ -242,5 +243,20 @@ class BackupRepositoryImplTest {
         repository.import(corrupted)
 
         assertEquals(null, db.episodeDao().getByGuid("orphan"))
+    }
+
+    @Test
+    fun import_dropsSubscriptionsWithUnknownPodcast() = runTest {
+        seedLibrary()
+        val backup = repository.createBackup()
+        val corrupted = backup.copy(
+            subscriptions = backup.subscriptions + BackupSubscription(999L, 1L)
+        )
+
+        db.clearAllTables()
+        val result = repository.import(corrupted)
+
+        assertEquals(listOf(1L), db.subscriptionDao().getAll().map { it.podcastId })
+        assertEquals(emptyList<Long>(), result.feedTargets.map { it.podcastId }.filter { it == 999L })
     }
 }
