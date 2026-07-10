@@ -160,4 +160,10 @@ dependencies {
   // On-device transcription
   implementation(libs.mlkit.genai.speech)
   implementation(libs.gson)
+
+  // WorkManager (backup restore downloads)
+  implementation(libs.work.runtime.ktx)
+  implementation(libs.hilt.work)
+  ksp(libs.androidx.hilt.compiler)
+  testImplementation(libs.work.testing)
 }

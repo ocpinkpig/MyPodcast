@@ -23,6 +23,8 @@ coil = "3.1.0"
 reorderable = "2.5.1"
 mlkitGenaiSpeech = "1.0.0-alpha1"
 gson = "2.11.0"
+work = "2.10.0"
+androidxHiltWork = "1.2.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
@@ -78,6 +80,12 @@ reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.r
 # Transcription
 mlkit-genai-speech = { group = "com.google.mlkit", name = "genai-speech-recognition", version.ref = "mlkitGenaiSpeech" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+
+# WorkManager
+work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
+work-testing = { module = "androidx.work:work-testing", version.ref = "work" }
+hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "androidxHiltWork" }
+androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "androidxHiltWork" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
