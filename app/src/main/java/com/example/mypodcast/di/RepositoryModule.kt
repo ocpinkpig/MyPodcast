@@ -1,6 +1,8 @@
 package com.example.mypodcast.di
 
 import com.example.mypodcast.data.backup.BackupRepositoryImpl
+import com.example.mypodcast.data.download.EpisodeAudioDownloader
+import com.example.mypodcast.data.download.OkHttpEpisodeAudioDownloader
 import com.example.mypodcast.data.repository.EpisodeRepositoryImpl
 import com.example.mypodcast.data.repository.LibraryRepositoryImpl
 import com.example.mypodcast.data.repository.PodcastRepositoryImpl
@@ -51,4 +53,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindBackupRepository(impl: BackupRepositoryImpl): BackupRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindEpisodeAudioDownloader(impl: OkHttpEpisodeAudioDownloader): EpisodeAudioDownloader
 }
