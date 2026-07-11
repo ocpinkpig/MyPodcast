@@ -43,8 +43,11 @@ class RestoreQueueStore @Inject constructor(
 
     private fun read(): RestoreQueue {
         if (!file.exists()) return EMPTY
-        return runCatching { gson.fromJson(file.readText(), RestoreQueue::class.java) }
-            .getOrNull() ?: EMPTY
+        val raw = runCatching { gson.fromJson(file.readText(), RawRestoreQueue::class.java) }
+            .getOrNull()
+        val total = raw?.total ?: return EMPTY
+        val pending = raw.pending ?: return EMPTY
+        return RestoreQueue(total = total, pending = pending)
     }
 
     private fun write(queue: RestoreQueue) {
@@ -55,3 +58,9 @@ class RestoreQueueStore @Inject constructor(
         val EMPTY = RestoreQueue(total = 0, pending = emptyList())
     }
 }
+
+/**
+ * All-nullable parse target: Gson doesn't enforce Kotlin null-safety, so fields
+ * are validated before constructing the strict [RestoreQueue].
+ */
+private class RawRestoreQueue(val total: Int? = null, val pending: List<String>? = null)

@@ -61,6 +61,27 @@ class RestoreQueueStoreTest {
     }
 
     @Test
+    fun snapshot_toleratesMissingPendingField() {
+        File(RuntimeEnvironment.getApplication().filesDir, "restore_downloads.json")
+            .writeText("""{"total": 5}""")
+
+        val queue = store.snapshot()
+
+        assertEquals(0, queue.total)
+        assertEquals(emptyList<String>(), queue.pending)
+    }
+
+    @Test
+    fun remove_toleratesMissingPendingField() {
+        File(RuntimeEnvironment.getApplication().filesDir, "restore_downloads.json")
+            .writeText("""{"total": 5}""")
+
+        store.remove("a")
+
+        assertEquals(emptyList<String>(), store.snapshot().pending)
+    }
+
+    @Test
     fun clear_removesQueue() {
         store.replace(listOf("a"))
 
