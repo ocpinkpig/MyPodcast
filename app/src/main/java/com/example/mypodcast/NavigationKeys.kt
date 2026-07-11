@@ -10,3 +10,5 @@ import kotlinx.serialization.Serializable
 @Serializable data object LibraryNavKey : NavKey
 
 @Serializable data object QueueNavKey : NavKey
+
+@Serializable data object BackupRestoreNavKey : NavKey

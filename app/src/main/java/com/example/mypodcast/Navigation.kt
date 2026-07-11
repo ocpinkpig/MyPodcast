@@ -9,6 +9,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import com.example.mypodcast.ui.backup.BackupRestoreScreen
 import com.example.mypodcast.ui.detail.PodcastDetailScreen
 import com.example.mypodcast.ui.home.HomeScreen
 import com.example.mypodcast.ui.library.LibraryScreen
@@ -56,7 +57,8 @@ fun MainNavigation() {
                     LibraryScreen(
                         onBack = { backStack.navigateBackToHome() },
                         onPodcastClick = { id -> backStack.add(PodcastDetailNavKey(id)) },
-                        onEpisodePlay = { guid -> backStack.add(PlayerNavKey(guid)) }
+                        onEpisodePlay = { guid -> backStack.add(PlayerNavKey(guid)) },
+                        onOpenBackupRestore = { backStack.add(BackupRestoreNavKey) }
                     )
                 }
             }
@@ -84,6 +86,9 @@ fun MainNavigation() {
                     episodeGuid = key.episodeGuid,
                     onBack = { backStack.removeLastOrNull() }
                 )
+            }
+            entry<BackupRestoreNavKey> {
+                BackupRestoreScreen(onBack = { backStack.removeLastOrNull() })
             }
         }
     )
