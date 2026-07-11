@@ -1,7 +1,6 @@
 package com.example.mypodcast.ui.library
 
-import android.content.Context
-import androidx.test.core.app.ApplicationProvider
+import com.example.mypodcast.data.download.EpisodeAudioDownloader
 import com.example.mypodcast.domain.model.Episode
 import com.example.mypodcast.domain.model.Podcast
 import com.example.mypodcast.domain.model.SavedMoment
@@ -34,7 +33,7 @@ import org.junit.runner.RunWith
 import org.junit.runner.Description
 import org.robolectric.annotation.Config
 import org.robolectric.RobolectricTestRunner
-import okhttp3.OkHttpClient
+import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -228,10 +227,18 @@ class LibraryViewModelTest {
 
     private fun downloadEpisodeUseCase(libraryRepository: LibraryRepository): DownloadEpisodeUseCase =
         DownloadEpisodeUseCase(
-            context = ApplicationProvider.getApplicationContext<Context>(),
-            okHttpClient = OkHttpClient(),
+            downloader = FakeEpisodeAudioDownloader(),
             libraryRepository = libraryRepository
         )
+}
+
+private class FakeEpisodeAudioDownloader : EpisodeAudioDownloader {
+    override suspend fun download(
+        episodeGuid: String,
+        audioUrl: String,
+        expectedFileSizeBytes: Long,
+        onProgress: (Int) -> Unit
+    ): File = throw UnsupportedOperationException("Not used in these tests")
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

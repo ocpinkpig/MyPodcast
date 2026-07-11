@@ -37,6 +37,8 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -101,10 +103,12 @@ fun LibraryScreen(
     onPodcastClick: (Long) -> Unit,
     onBack: () -> Unit = {},
     onEpisodePlay: (String) -> Unit = {},
+    onOpenBackupRestore: () -> Unit = {},
     viewModel: LibraryViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingDelete by remember { mutableStateOf<Episode?>(null) }
+    var overflowExpanded by remember { mutableStateOf(false) }
     val searchFocusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val tabs = remember { LibraryTab.entries.toList() }
@@ -188,8 +192,22 @@ fun LibraryScreen(
                         IconButton(onClick = viewModel::openSearch) {
                             Icon(Icons.Default.Search, contentDescription = "Search library")
                         }
-                        IconButton(onClick = { /* More library options coming later. */ }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More library options")
+                        Box {
+                            IconButton(onClick = { overflowExpanded = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "More library options")
+                            }
+                            DropdownMenu(
+                                expanded = overflowExpanded,
+                                onDismissRequest = { overflowExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Backup and restore") },
+                                    onClick = {
+                                        overflowExpanded = false
+                                        onOpenBackupRestore()
+                                    }
+                                )
+                            }
                         }
                     }
                 },

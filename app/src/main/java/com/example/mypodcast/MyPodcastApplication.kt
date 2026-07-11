@@ -1,19 +1,28 @@
 package com.example.mypodcast
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import com.example.mypodcast.domain.repository.LibraryRepository
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 @HiltAndroidApp
-class MyPodcastApplication : Application() {
+class MyPodcastApplication : Application(), Configuration.Provider {
+
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
     @EntryPoint
     @InstallIn(SingletonComponent::class)

@@ -21,4 +21,13 @@ interface SavedMomentDao {
 
     @Query("DELETE FROM saved_moments WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("SELECT * FROM saved_moments")
+    suspend fun getAll(): List<SavedMomentEntity>
+
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM saved_moments " +
+            "WHERE episodeGuid = :episodeGuid AND positionMs = :positionMs AND createdAt = :createdAt)"
+    )
+    suspend fun exists(episodeGuid: String, positionMs: Long, createdAt: Long): Boolean
 }

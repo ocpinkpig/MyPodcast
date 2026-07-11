@@ -21,4 +21,7 @@ interface SubscriptionDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM subscriptions WHERE podcastId = :podcastId)")
     fun observeIsSubscribed(podcastId: Long): Flow<Boolean>
+
+    @Query("SELECT * FROM subscriptions")
+    suspend fun getAll(): List<SubscriptionEntity>
 }
