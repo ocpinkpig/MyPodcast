@@ -154,7 +154,7 @@ class PlayerController @Inject constructor(
 
     private fun buildMediaItem(episode: Episode, podcastTitle: String?): MediaItem =
         MediaItem.Builder()
-            .setUri(episode.audioUrl)
+            .setUri(audioUri(episode.audioUrl))
             .setMediaId(episode.guid)
             .setMediaMetadata(
                 MediaMetadata.Builder()
