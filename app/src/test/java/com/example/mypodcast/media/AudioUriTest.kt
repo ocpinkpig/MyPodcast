@@ -4,23 +4,48 @@ import androidx.media3.common.util.Util
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Downloaded episodes carry a filesystem path in `Episode.audioUrl`, and the
- * path is derived from the feed's `<guid>` — arbitrary text. These cover the
- * guid shapes that broke playback: a bare `Uri.parse` reads the ':' in a
- * URL-style guid as a scheme separator (routing ExoPlayer to HTTP) and
- * truncates at '?' or '#'.
+ * A downloaded episode should play from its file when that file exists, and
+ * stream otherwise. The file path is derived from the feed's `<guid>` —
+ * arbitrary text — so these also cover the guid shapes that broke playback: a
+ * bare `Uri.parse` reads the ':' in a URL-style guid as a scheme separator
+ * (routing ExoPlayer to HTTP) and truncates at '?' or '#'.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class AudioUriTest {
 
+    @get:Rule
+    val tempFolder = TemporaryFolder()
+
     private val episodesDir = "/data/user/0/com.example.mypodcast/files/episodes"
+    private val feedUrl = "https://traffic.megaphone.fm/ABC1234567890.mp3"
+
+    @Test
+    fun `downloaded episode plays from its file`() {
+        val file = tempFolder.newFile("episode.mp3")
+
+        assertEquals(file.absolutePath, playbackSource(feedUrl, downloadedPath = file.absolutePath))
+    }
+
+    @Test
+    fun `download whose file is missing streams from the feed url`() {
+        val missing = "${tempFolder.root.absolutePath}/deleted.mp3"
+
+        assertEquals(feedUrl, playbackSource(feedUrl, downloadedPath = missing))
+    }
+
+    @Test
+    fun `episode that is not downloaded streams from the feed url`() {
+        assertEquals(feedUrl, playbackSource(feedUrl, downloadedPath = null))
+    }
 
     @Test
     fun `local path from url-style guid resolves as a local file`() {

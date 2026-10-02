@@ -197,6 +197,7 @@ fun PlayerScreen(
             onAddToQueueClick = { viewModel.addToQueue(episodeGuid) },
             onSaveMomentClick = { viewModel.saveMoment(episodeGuid) },
             hasSavedMoments = hasSavedMoments,
+            isDownloaded = isDownloaded,
             onRetryTranscript = { viewModel.retryTranscript(transcriptEpisode) },
             offerTranscription = offerTranscription,
             onTranscriptionEnabled = viewModel::onTranscriptionPermissionGranted
@@ -246,6 +247,7 @@ private fun PlayerPager(
     onAddToQueueClick: () -> Unit,
     onSaveMomentClick: () -> Unit,
     hasSavedMoments: Boolean,
+    isDownloaded: Boolean,
     onRetryTranscript: () -> Unit,
     offerTranscription: Boolean,
     onTranscriptionEnabled: () -> Unit
@@ -273,7 +275,8 @@ private fun PlayerPager(
                     onFavoriteClick = onFavoriteClick,
                     onAddToQueueClick = onAddToQueueClick,
                     onSaveMomentClick = onSaveMomentClick,
-                    hasSavedMoments = hasSavedMoments
+                    hasSavedMoments = hasSavedMoments,
+                    isDownloaded = isDownloaded
                 )
                 1 -> ShowNotesPage(
                     state = state,
@@ -338,7 +341,8 @@ private fun PlaybackPage(
     onFavoriteClick: () -> Unit,
     onAddToQueueClick: () -> Unit,
     onSaveMomentClick: () -> Unit,
-    hasSavedMoments: Boolean
+    hasSavedMoments: Boolean,
+    isDownloaded: Boolean
 ) {
     val episode = state.episode
     var feedback by remember { mutableStateOf<PlayerFeedback?>(null) }
@@ -384,7 +388,7 @@ private fun PlaybackPage(
             )
 
             PlayerStatusChips(
-                isDownloaded = episode?.audioUrl?.startsWith("/") == true,
+                isDownloaded = isDownloaded,
                 isFavorite = episode?.isFavorite == true,
                 favoriteEnabled = episode != null,
                 onFavoriteClick = onFavoriteClick,
