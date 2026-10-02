@@ -6,6 +6,8 @@ import com.example.mypodcast.data.local.entity.DownloadedEpisodeEntity
 import com.example.mypodcast.data.local.entity.EpisodeEntity
 import com.example.mypodcast.data.local.entity.PodcastEntity
 import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertFalse
+import junit.framework.TestCase.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -15,12 +17,14 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class LibraryRepositoryImplTest {
     private lateinit var db: AppDatabase
     private lateinit var repository: LibraryRepositoryImpl
+    private val episodesDir get() = File(RuntimeEnvironment.getApplication().filesDir, "episodes")
 
     @Before
     fun setUp() {
@@ -45,6 +49,7 @@ class LibraryRepositoryImplTest {
     @After
     fun tearDown() {
         db.close()
+        episodesDir.deleteRecursively()
     }
 
     @Test
@@ -76,6 +81,62 @@ class LibraryRepositoryImplTest {
 
         assertEquals("https://example.com/ep.mp3", downloads.single().audioUrl)
     }
+
+    @Test
+    fun cleanupOrphanedFiles_deletesOldUnrecordedFilesIncludingNestedOnes() = runTest {
+        val orphan = oldFile("orphan.mp3")
+        val nestedOrphan = oldFile("https:/host.example/orphan.mp3.mp3")
+        val abandonedPart = oldFile("crashed.mp3.part")
+
+        repository.cleanupOrphanedFiles()
+
+        assertFalse(orphan.exists())
+        assertFalse(nestedOrphan.exists())
+        assertFalse(abandonedPart.exists())
+    }
+
+    @Test
+    fun cleanupOrphanedFiles_keepsRecordedFilesAndDownloadsInFlight() = runTest {
+        val recorded = oldFile("https:/host.example/kept.mp3.mp3")
+        db.downloadedEpisodeDao().insert(
+            DownloadedEpisodeEntity(
+                episodeGuid = "https://host.example/kept.mp3",
+                podcastId = 1L,
+                localFilePath = recorded.absolutePath,
+                fileSizeBytes = 5L
+            )
+        )
+        // Still being written, and renamed but not yet recorded.
+        val partial = newFile("downloading.mp3.part")
+        val finishedUnrecorded = newFile("just-finished.mp3")
+
+        repository.cleanupOrphanedFiles()
+
+        assertTrue(recorded.exists())
+        assertTrue(partial.exists())
+        assertTrue(finishedUnrecorded.exists())
+    }
+
+    @Test
+    fun cleanupOrphanedFiles_removesOldEmptyDirectories() = runTest {
+        val emptyDir = File(episodesDir, "https:/host.example").apply { mkdirs() }
+        emptyDir.setLastModified(twoHoursAgo())
+
+        repository.cleanupOrphanedFiles()
+
+        assertFalse(emptyDir.exists())
+    }
+
+    private fun newFile(relativePath: String) = File(episodesDir, relativePath).apply {
+        parentFile?.mkdirs()
+        writeText("audio")
+    }
+
+    private fun oldFile(relativePath: String) = newFile(relativePath).apply {
+        setLastModified(twoHoursAgo())
+    }
+
+    private fun twoHoursAgo() = System.currentTimeMillis() - 2 * 60 * 60 * 1000L
 
     private fun podcast() = PodcastEntity(
         id = 1L,
