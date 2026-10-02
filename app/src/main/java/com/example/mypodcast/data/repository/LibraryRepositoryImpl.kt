@@ -139,17 +139,44 @@ class LibraryRepositoryImpl @Inject constructor(
     override suspend fun setTranscriptStatus(episodeGuid: String, status: TranscriptStatus) =
         downloadedEpisodeDao.updateTranscriptStatus(episodeGuid, status.name)
 
+    /**
+     * Deletes files under `episodes/` that no download row points at.
+     *
+     * Runs at app start, possibly alongside a download (e.g. the restore
+     * worker), which writes `<guid>.mp3.part`, renames it and only then inserts
+     * its row. Anything modified within [ORPHAN_MIN_AGE_MS] is therefore left
+     * for a later launch: an in-flight `.part` file keeps being written to, and
+     * a just-renamed file keeps its recent mtime until its row exists.
+     *
+     * Paths are derived from the feed's guid, so URL-style guids nest files in
+     * subdirectories; the walk covers those and removes old empty directories.
+     * (Emptying a directory refreshes its mtime, so it goes on a later launch.)
+     */
     override suspend fun cleanupOrphanedFiles() = withContext(Dispatchers.IO) {
         val episodesDir = File(context.filesDir, "episodes")
         if (!episodesDir.exists()) return@withContext
-        val files = episodesDir.listFiles().orEmpty()
-        if (files.isEmpty()) return@withContext
 
-        val dbPaths = downloadedEpisodeDao.getAll().map { it.localFilePath }.toSet()
-        files.forEach { file ->
-            if (file.absolutePath !in dbPaths) {
-                runCatching { file.delete() }
+        // Read rows before walking: a download recorded after this read is
+        // still protected by its recent mtime.
+        val recordedPaths = downloadedEpisodeDao.getAll()
+            .mapNotNull { runCatching { File(it.localFilePath).canonicalPath }.getOrNull() }
+            .toSet()
+        val cutoff = System.currentTimeMillis() - ORPHAN_MIN_AGE_MS
+        episodesDir.walkBottomUp().forEach { file ->
+            runCatching {
+                when {
+                    file == episodesDir -> Unit
+                    file.lastModified() > cutoff -> Unit
+                    // delete() only succeeds on an empty directory.
+                    file.isDirectory -> file.delete()
+                    file.canonicalPath !in recordedPaths -> file.delete()
+                    else -> Unit
+                }
             }
         }
+    }
+
+    private companion object {
+        const val ORPHAN_MIN_AGE_MS = 60 * 60 * 1000L
     }
 }
