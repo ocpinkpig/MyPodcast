@@ -68,7 +68,6 @@ class LibraryRepositoryImpl @Inject constructor(
             if (downloads.isEmpty()) flowOf(emptyList())
             else {
                 val guids = downloads.map { it.episodeGuid }
-                val pathByGuid = downloads.associate { it.episodeGuid to it.localFilePath }
                 val podcastIds = downloads.map { it.podcastId }.distinct()
                 episodeDao.observeByGuids(guids).combine(
                     podcastDao.observeByIds(podcastIds)
@@ -80,7 +79,9 @@ class LibraryRepositoryImpl @Inject constructor(
                             podcastId = e.podcastId,
                             title = e.title,
                             description = e.description,
-                            audioUrl = pathByGuid[e.guid] ?: e.audioUrl,
+                            // Keep the feed URL: PlayerController swaps in the
+                            // downloaded file itself (see playbackSource).
+                            audioUrl = e.audioUrl,
                             artworkUrl = e.artworkUrl?.takeIf { it.isNotBlank() }
                                 ?: artworkByPodcastId[e.podcastId],
                             publishedAt = e.publishedAt,

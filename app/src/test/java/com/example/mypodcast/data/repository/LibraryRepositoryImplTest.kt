@@ -66,6 +66,17 @@ class LibraryRepositoryImplTest {
         assertEquals(listOf("newer", "middle", "older"), downloads.map { it.guid })
     }
 
+    @Test
+    fun observeDownloadedEpisodes_keepsFeedUrlSoPlayerPicksTheSource() = runTest {
+        db.podcastDao().upsert(podcast())
+        db.episodeDao().upsertAll(listOf(episode(guid = "ep", publishedAt = 1_000L)))
+        db.downloadedEpisodeDao().insert(download(guid = "ep", downloadedAt = 10_000L))
+
+        val downloads = repository.observeDownloadedEpisodes().first()
+
+        assertEquals("https://example.com/ep.mp3", downloads.single().audioUrl)
+    }
+
     private fun podcast() = PodcastEntity(
         id = 1L,
         title = "Podcast",

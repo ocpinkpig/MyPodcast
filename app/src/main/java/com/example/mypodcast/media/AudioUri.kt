@@ -4,9 +4,25 @@ import android.net.Uri
 import java.io.File
 
 /**
- * Resolves an [com.example.mypodcast.domain.model.Episode.audioUrl] to a URI
- * ExoPlayer can open. Downloaded episodes carry an absolute filesystem path
- * there instead of a URL (see `LibraryRepositoryImpl.observeDownloadedEpisodes`).
+ * Picks what to play for an episode: its downloaded file when one is recorded
+ * and still on disk, otherwise the feed's [audioUrl] for streaming.
+ *
+ * This is the only place the downloads table decides playback. Every
+ * `Episode` the UI hands the player carries the feed URL — whether it came
+ * from the Downloads tab, a podcast's episode list, history, the queue or the
+ * episode restored at launch — so a downloaded episode plays from disk no
+ * matter where it was started, and a download whose file has gone missing
+ * streams instead of failing with "Source error".
+ */
+internal fun playbackSource(
+    audioUrl: String,
+    downloadedPath: String?,
+    isFile: (String) -> Boolean = { File(it).isFile }
+): String = downloadedPath?.takeIf(isFile) ?: audioUrl
+
+/**
+ * Resolves a [playbackSource] to a URI ExoPlayer can open. A downloaded
+ * episode's source is an absolute filesystem path rather than a URL.
  *
  * Such a path must not go through `Uri.parse`: the path is built from the feed's
  * `<guid>`, so it routinely contains ':' (URL- and tag-style guids), which

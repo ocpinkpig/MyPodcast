@@ -8,8 +8,10 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.example.mypodcast.data.local.dao.DownloadedEpisodeDao
 import com.example.mypodcast.data.local.dao.QueueDao
 import com.example.mypodcast.data.local.entity.QueueItemEntity
 import com.example.mypodcast.domain.model.Episode
@@ -25,6 +27,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -38,7 +42,8 @@ class PlayerController @Inject constructor(
     private val sleepTimerManager: SleepTimerManager,
     private val episodeRepository: Lazy<EpisodeRepository>,
     private val queueDao: Lazy<QueueDao>,
-    private val podcastRepository: Lazy<PodcastRepository>
+    private val podcastRepository: Lazy<PodcastRepository>,
+    private val downloadedEpisodeDao: Lazy<DownloadedEpisodeDao>
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -58,6 +63,10 @@ class PlayerController @Inject constructor(
     val playerState: StateFlow<PlayerState> = _playerState
 
     private var currentEpisode: Episode? = null
+    // Episode guid -> downloaded file path; null until the downloads table first loads.
+    private val downloadedPaths = MutableStateFlow<Map<String, String>?>(null)
+    // What the loaded media item plays from: a downloaded file path or the feed URL.
+    private var loadedSource: String? = null
     private var positionJob: Job? = null
     private var ticksSinceLastSave = 0
 
@@ -86,7 +95,11 @@ class PlayerController @Inject constructor(
                 }
             }
 
-            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+            override fun onPlayerError(error: PlaybackException) {
+                // The loaded source may have gone stale: its downloaded file was
+                // deleted, or the episode was downloaded while it streamed and then
+                // the network dropped. Switch over and carry on from the same spot.
+                if (refreshSourceIfStale()) return
                 _playerState.update { it.copy(error = error.message) }
             }
         })
@@ -94,6 +107,13 @@ class PlayerController @Inject constructor(
         scope.launch {
             sleepTimerManager.remainingMs.collect { remaining ->
                 _playerState.update { it.copy(sleepTimerRemainingMs = remaining) }
+            }
+        }
+
+        scope.launch {
+            val dao = withContext(Dispatchers.IO) { downloadedEpisodeDao.get() }
+            dao.observeAll().collect { downloads ->
+                downloadedPaths.value = downloads.associate { it.episodeGuid to it.localFilePath }
             }
         }
 
@@ -130,7 +150,9 @@ class PlayerController @Inject constructor(
         if (touchLastPlayed) {
             scope.launch(Dispatchers.IO) { episodeRepository.get().touchLastPlayed(episode.guid, now) }
         }
-        val mediaItem = buildMediaItem(episode, podcastTitle = null)
+        val source = playbackSourceFor(episode)
+        loadedSource = source
+        val mediaItem = buildMediaItem(episode, source, podcastTitle = null)
         exoPlayer.setMediaItem(mediaItem)
         loadPodcastTitleIntoMetadata(episode)
         if (episode.playbackPosition > 0L) exoPlayer.seekTo(episode.playbackPosition)
@@ -152,9 +174,33 @@ class PlayerController @Inject constructor(
         }
     }
 
-    private fun buildMediaItem(episode: Episode, podcastTitle: String?): MediaItem =
+    private fun playbackSourceFor(episode: Episode): String =
+        playbackSource(episode.audioUrl, downloadedPaths.value?.get(episode.guid))
+
+    /**
+     * Re-points the loaded episode at [playbackSourceFor] when that changed since
+     * it was loaded — the episode was downloaded after it started streaming, or
+     * its downloaded file was deleted — keeping position and play/pause state.
+     * Returns whether the source was swapped.
+     */
+    private fun refreshSourceIfStale(): Boolean {
+        val episode = currentEpisode ?: return false
+        val source = playbackSourceFor(episode)
+        if (source == loadedSource) return false
+        val item = exoPlayer.currentMediaItem ?: return false
+        loadedSource = source
+        exoPlayer.setMediaItem(
+            item.buildUpon().setUri(audioUri(source)).build(),
+            exoPlayer.currentPosition
+        )
+        exoPlayer.prepare()
+        _playerState.update { it.copy(error = null) }
+        return true
+    }
+
+    private fun buildMediaItem(episode: Episode, source: String, podcastTitle: String?): MediaItem =
         MediaItem.Builder()
-            .setUri(audioUri(episode.audioUrl))
+            .setUri(audioUri(source))
             .setMediaId(episode.guid)
             .setMediaMetadata(
                 MediaMetadata.Builder()
@@ -173,7 +219,8 @@ class PlayerController @Inject constructor(
                 ?: return@launch
             // Bail if the user has moved on to a different episode in the meantime.
             if (currentEpisode?.guid != episode.guid) return@launch
-            val updated = buildMediaItem(episode, podcastTitle = podcast.title)
+            val source = loadedSource ?: return@launch
+            val updated = buildMediaItem(episode, source, podcastTitle = podcast.title)
             exoPlayer.replaceMediaItem(0, updated)
         }
     }
@@ -191,6 +238,14 @@ class PlayerController @Inject constructor(
             } else {
                 _playerState.update { it.copy(positionMs = 0L, error = null) }
             }
+        }
+        if (!refreshSourceIfStale() &&
+            exoPlayer.playbackState == Player.STATE_IDLE &&
+            exoPlayer.currentMediaItem != null
+        ) {
+            // A playback error leaves the player idle; play() alone wouldn't retry.
+            exoPlayer.prepare()
+            _playerState.update { it.copy(error = null) }
         }
         exoPlayer.play()
     }
@@ -374,6 +429,10 @@ class PlayerController @Inject constructor(
         if (hydrated.removedMissingQueueItems) {
             persistQueue(hydrated.queue)
         }
+
+        // Wait for the downloads table so a downloaded episode restores from
+        // disk rather than the network.
+        if (hydrated.currentEpisode != null) downloadedPaths.filterNotNull().first()
 
         val episode = hydrated.currentEpisode
         if (episode != null && currentEpisode == null) {
